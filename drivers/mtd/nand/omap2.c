@@ -18,6 +18,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
+#include <linux/mtd/nand_bch.h>
 #include <linux/io.h>
 #include <linux/slab.h>
 
@@ -126,7 +127,8 @@ struct omap_nand_info {
 		OMAP_NAND_IO_WRITE,	/* write */
 	} iomode;
 	u_char				*buf;
-	int					buf_len;
+	int				buf_len;
+	int				ecc_opt;
 };
 
 /**
@@ -782,6 +784,30 @@ static int omap_compare_ecc(u8 *ecc_data1,	/* read from NAND memory */
 	}
 }
 
+static int _omap_correct_data(struct mtd_info *mtd, u_char *dat,
+				u_char *read_ecc, u_char *calc_ecc,
+				int eccbytes)
+{
+	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
+							mtd);
+	int i;
+
+	switch (info->ecc_opt) {
+	case OMAP_ECC_HAMMING_CODE_HW:
+	case OMAP_ECC_HAMMING_CODE_HW_ROMCODE:
+		return omap_compare_ecc(read_ecc, calc_ecc, dat);
+
+	case OMAP_ECC_BCH4_CODE_HW:
+	case OMAP_ECC_BCH8_CODE_HW:
+		for (i = 0; i < eccbytes; i++)
+			if (read_ecc[i] != 0xFF) {
+				return nand_bch_correct_data(mtd, dat,
+					read_ecc, calc_ecc);
+			}
+	}
+	return 0;
+}
+
 /**
  * omap_correct_data - Compares the ECC read with HW generated ECC
  * @mtd: MTD device structure
@@ -801,8 +827,8 @@ static int omap_correct_data(struct mtd_info *mtd, u_char *dat,
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
 							mtd);
-	int blockCnt = 0, i = 0, ret = 0;
-	int stat = 0;
+	int blockCnt = 0, i = 0, ret;
+	int eccsize, eccbytes, stat = 0;
 
 	/* Ex NAND_ECC_HW12_2048 */
 	if ((info->nand.ecc.mode == NAND_ECC_HW) &&
@@ -811,17 +837,20 @@ static int omap_correct_data(struct mtd_info *mtd, u_char *dat,
 	else
 		blockCnt = 1;
 
+	eccbytes = info->nand.ecc.bytes / blockCnt;
+	eccsize = info->nand.ecc.size / blockCnt;
+
 	for (i = 0; i < blockCnt; i++) {
-		if (memcmp(read_ecc, calc_ecc, 3) != 0) {
-			ret = omap_compare_ecc(read_ecc, calc_ecc, dat);
+		if (memcmp(read_ecc, calc_ecc, eccbytes) != 0) {
+			ret = _omap_correct_data(mtd, dat, read_ecc,
+				calc_ecc, eccbytes);
 			if (ret < 0)
 				return ret;
-			/* keep track of the number of corrected errors */
 			stat += ret;
 		}
-		read_ecc += 3;
-		calc_ecc += 3;
-		dat      += 512;
+		read_ecc += eccbytes;
+		calc_ecc += eccbytes;
+		dat      += eccsize;
 	}
 	return stat;
 }
@@ -843,7 +872,7 @@ static int omap_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
 							mtd);
-	return gpmc_calculate_ecc(info->gpmc_cs, dat, ecc_code);
+	return gpmc_calculate_ecc(info->ecc_opt, info->gpmc_cs, dat, ecc_code);
 }
 
 /**
@@ -858,7 +887,8 @@ static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 	struct nand_chip *chip = mtd->priv;
 	unsigned int dev_width = (chip->options & NAND_BUSWIDTH_16) ? 1 : 0;
 
-	gpmc_enable_hwecc(info->gpmc_cs, mode, dev_width, info->nand.ecc.size);
+	gpmc_enable_hwecc(info->ecc_opt, info->gpmc_cs, mode,
+				dev_width, info->nand.ecc.size);
 }
 
 /**
@@ -955,6 +985,7 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	info->mtd.priv		= &info->nand;
 	info->mtd.name		= dev_name(&pdev->dev);
 	info->mtd.owner		= THIS_MODULE;
+	info->ecc_opt		= pdata->ecc_opt;
 
 	info->nand.options	= pdata->devsize;
 	info->nand.options	|= NAND_SKIP_BBTSCAN;
@@ -1051,13 +1082,25 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 
 	info->nand.verify_buf = omap_verify_buf;
 
-	/* selsect the ecc type */
-	if (pdata->ecc_opt == OMAP_ECC_HAMMING_CODE_DEFAULT)
+	/* select the ecc type */
+	switch (pdata->ecc_opt) {
+	case OMAP_ECC_HAMMING_CODE_DEFAULT:
 		info->nand.ecc.mode = NAND_ECC_SOFT;
-	else if ((pdata->ecc_opt == OMAP_ECC_HAMMING_CODE_HW) ||
-		(pdata->ecc_opt == OMAP_ECC_HAMMING_CODE_HW_ROMCODE)) {
-		info->nand.ecc.bytes            = 3;
-		info->nand.ecc.size             = 512;
+		break;
+	case OMAP_ECC_BCH4_CODE_HW:
+		info->nand.ecc.bytes    = 4*7;
+		info->nand.ecc.size     = 4*512;
+		break;
+	case OMAP_ECC_BCH8_CODE_HW:
+		info->nand.ecc.bytes    = 4*13;
+		info->nand.ecc.size     = 4*512;
+		break;
+	default:
+		info->nand.ecc.bytes    = 3;
+		info->nand.ecc.size     = 512;
+	}
+
+	if (pdata->ecc_opt != OMAP_ECC_HAMMING_CODE_DEFAULT) {
 		info->nand.ecc.strength         = 1;
 		info->nand.ecc.calculate        = omap_calculate_ecc;
 		info->nand.ecc.hwctl            = omap_enable_hwecc;
@@ -1076,24 +1119,47 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 		}
 	}
 
-	/* rom code layout */
-	if (pdata->ecc_opt == OMAP_ECC_HAMMING_CODE_HW_ROMCODE) {
-
+	/* select ecc layout */
+	if (info->nand.ecc.mode != NAND_ECC_SOFT) {
 		if (info->nand.options & NAND_BUSWIDTH_16)
 			offset = 2;
 		else {
 			offset = 1;
 			info->nand.badblock_pattern = &bb_descrip_flashbased;
 		}
-		omap_oobinfo.eccbytes = 3 * (info->mtd.oobsize/16);
-		for (i = 0; i < omap_oobinfo.eccbytes; i++)
-			omap_oobinfo.eccpos[i] = i+offset;
+		if (info->mtd.oobsize == 64)
+			omap_oobinfo.eccbytes = info->nand.ecc.bytes *
+						2048/info->nand.ecc.size;
+		else
+			omap_oobinfo.eccbytes = info->nand.ecc.bytes;
 
-		omap_oobinfo.oobfree->offset = offset + omap_oobinfo.eccbytes;
-		omap_oobinfo.oobfree->length = info->mtd.oobsize -
-					(offset + omap_oobinfo.eccbytes);
-
+		if (pdata->ecc_opt == OMAP_ECC_HAMMING_CODE_HW_ROMCODE) {
+			for (i = 0; i < omap_oobinfo.eccbytes; i++)
+				omap_oobinfo.eccpos[i] = i + offset;
+			omap_oobinfo.oobfree->offset =
+						offset + omap_oobinfo.eccbytes;
+			omap_oobinfo.oobfree->length = info->mtd.oobsize -
+						offset - omap_oobinfo.eccbytes;
+		} else {
+			omap_oobinfo.oobfree->offset = offset;
+			omap_oobinfo.oobfree->length = info->mtd.oobsize -
+						offset - omap_oobinfo.eccbytes;
+			offset = info->mtd.oobsize - omap_oobinfo.eccbytes;
+			for (i = 0; i < omap_oobinfo.eccbytes; i++)
+				omap_oobinfo.eccpos[i] = i + offset;
+		}
 		info->nand.ecc.layout = &omap_oobinfo;
+		if ((pdata->ecc_opt == OMAP_ECC_BCH4_CODE_HW) ||
+			(pdata->ecc_opt == OMAP_ECC_BCH8_CODE_HW)) {
+			info->nand.ecc.priv = nand_bch_init(&info->mtd,
+						info->nand.ecc.size/4,
+						info->nand.ecc.bytes/4,
+						&info->nand.ecc.layout);
+			if (!info->nand.ecc.priv) {
+				err = -EINVAL;
+				goto out_release_mem_region;
+			}
+		}
 	}
 
 	/* second phase scan */
@@ -1129,6 +1195,8 @@ static int omap_nand_remove(struct platform_device *pdev)
 
 	if (info->gpmc_irq)
 		free_irq(info->gpmc_irq, info);
+	if (info->nand.ecc.priv)
+		nand_bch_free((struct nand_bch_control *)info->nand.ecc.priv);
 
 	/* Release NAND device, its internal structures and partitions */
 	nand_release(&info->mtd);
