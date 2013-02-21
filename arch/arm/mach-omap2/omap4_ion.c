@@ -14,6 +14,7 @@
 #include <linux/memblock.h>
 #include <linux/omap_ion.h>
 #include <linux/platform_device.h>
+#include <asm/setup.h>
 
 #include "omap4_ion.h"
 
@@ -73,8 +74,12 @@ void __init omap4_ion_init(void)
 {
 	int i;
 	int ret;
+	phys_addr_t total_ram_size = 0;
 
-	for (i = 0; i < omap4_ion_data.nr; i++)
+	for (i = 0; i < meminfo.nr_banks; i++)
+                total_ram_size += meminfo.bank[i].size;
+
+	for (i = 0; i < omap4_ion_data.nr; i++) {
 		if (omap4_ion_data.heaps[i].type == ION_HEAP_TYPE_CARVEOUT ||
 		    omap4_ion_data.heaps[i].type == OMAP_ION_HEAP_TYPE_TILER) {
 			ret = memblock_remove(omap4_ion_data.heaps[i].base,
@@ -84,4 +89,18 @@ void __init omap4_ion_init(void)
 				       omap4_ion_data.heaps[i].size,
 				       omap4_ion_data.heaps[i].base);
 		}
+		if (total_ram_size == SZ_512M) {
+			if ((omap4_ion_data.heaps[i].id ==
+						OMAP_ION_HEAP_SECURE_INPUT) ||
+			    (omap4_ion_data.heaps[i].id ==
+						OMAP_ION_HEAP_TILER)) {
+				omap4_ion_data.heaps[i].size = 0;
+			} else if (omap4_ion_data.heaps[i].id ==
+					OMAP_ION_HEAP_NONSECURE_TILER) {
+				omap4_ion_data.heaps[i].base =
+					0x80000000 + SZ_512M -
+					OMAP4_ION_HEAP_NONSECURE_TILER_SIZE;
+			}
+		}
+	}
 }
