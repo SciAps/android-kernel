@@ -19,7 +19,7 @@
 #define PRCMDEBUG_LASTSLEEP	(1 << 0)
 #define PRCMDEBUG_ON		(1 << 1)
 
-#ifdef CONFIG_PM_DEBUG
+#if defined(CONFIG_PM_DEBUG) && defined(CONFIG_ARCH_OMAP5)
 extern void prcmdebug_dump(int flags);
 #else
 static inline void prcmdebug_dump(int flags) { }
