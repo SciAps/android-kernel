@@ -370,7 +370,8 @@ static int __devinit twl6030_usb_probe(struct platform_device *pdev)
 	twl->features		= pdata->features;
 	twl->prev_status	= OMAP_MUSB_UNKNOWN;
 
-	twl->comparator.set_vbus	= twl6030_set_vbus;
+	twl->comparator.set_vbus	= (pdata->otg_set_vbus) ?
+					pdata->otg_set_vbus : twl6030_set_vbus;
 	twl->comparator.start_srp	= twl6030_start_srp;
 	comparator			= &twl->comparator;
 
