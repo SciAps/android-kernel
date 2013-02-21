@@ -610,8 +610,12 @@ static void nand_command(struct mtd_info *mtd, unsigned int command,
 	switch (command) {
 
 	case NAND_CMD_ERASE1:
+		return;
 	case NAND_CMD_SEQIN:
+		ndelay(70);	// need to wait tADL, but ready line not used
+		return;
 	case NAND_CMD_STATUS:
+		ndelay(80);	// need to wait tWHR, but ready line not used
 		return;
 
 	case NAND_CMD_RESET:
@@ -701,10 +705,16 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 	/* Some commands need no delay. */
 	case NAND_CMD_CACHEDPROG:
 	case NAND_CMD_ERASE1:
-	case NAND_CMD_SEQIN:
 	case NAND_CMD_RNDIN:
-	case NAND_CMD_STATUS:
 	case NAND_CMD_DEPLETE1:
+		return;
+
+	case NAND_CMD_SEQIN:
+		ndelay(70);	// need to wait tADL, but ready line not used
+		return;
+
+	case NAND_CMD_STATUS:
+		ndelay(80);	// need to wait tWHR, but ready line not used
 		return;
 
 	case NAND_CMD_STATUS_ERROR:
