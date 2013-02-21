@@ -606,15 +606,10 @@ static void nand_command(struct mtd_info *mtd, unsigned int command,
 	}
 	chip->cmd_ctrl(mtd, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
 
-	/*
-	 * Program and erase have their own busy handlers status and sequential
-	 * in needs no delay
-	 */
+	/* Some commands need no delay. */
 	switch (command) {
 
-	case NAND_CMD_PAGEPROG:
 	case NAND_CMD_ERASE1:
-	case NAND_CMD_ERASE2:
 	case NAND_CMD_SEQIN:
 	case NAND_CMD_STATUS:
 		return;
@@ -701,16 +696,11 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 	}
 	chip->cmd_ctrl(mtd, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
 
-	/*
-	 * Program and erase have their own busy handlers status, sequential
-	 * in, and deplete1 need no delay.
-	 */
 	switch (command) {
 
+	/* Some commands need no delay. */
 	case NAND_CMD_CACHEDPROG:
-	case NAND_CMD_PAGEPROG:
 	case NAND_CMD_ERASE1:
-	case NAND_CMD_ERASE2:
 	case NAND_CMD_SEQIN:
 	case NAND_CMD_RNDIN:
 	case NAND_CMD_STATUS:
@@ -744,6 +734,7 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 			       NAND_NCE | NAND_CLE | NAND_CTRL_CHANGE);
 		chip->cmd_ctrl(mtd, NAND_CMD_NONE,
 			       NAND_NCE | NAND_CTRL_CHANGE);
+		ndelay(80);	// tWHR
 		return;
 
 	case NAND_CMD_READ0:
