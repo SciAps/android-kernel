@@ -31,11 +31,14 @@
  */
 
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <video/omapdss.h>
 
 #include <video/omap-panel-generic-dpi.h>
+
+static char *def_panel_name;
 
 struct panel_config {
 	struct omap_video_timings timings;
@@ -409,6 +412,52 @@ static struct panel_config generic_dpi_panels[] = {
 
 		.name			= "innolux_at080tn52",
 	},
+
+	/* Prime-View PD050VL1 */
+	{
+		{
+			.x_res		= 640,
+			.y_res		= 480,
+
+			.pixel_clock	= 25000,
+
+			.hsw		= 96,
+			.hfp		= 18,
+			.hbp		= 46,
+
+			.vsw		= 2,
+			.vfp		= 10,
+			.vbp		= 33,
+		},
+		.acbi			= 0x0,
+		.acb			= 0x28,
+		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+		.name			= "pd050vl1",
+	},
+
+	/* Prime-View PM070WL4 */
+	{
+		{
+			.x_res		= 800,
+			.y_res		= 480,
+
+			.pixel_clock	= 32000,
+
+			.hsw		= 128,
+			.hfp		= 42,
+			.hbp		= 86,
+
+			.vsw		= 2,
+			.vfp		= 10,
+			.vbp		= 33,
+		},
+		.acbi			= 0x0,
+		.acb			= 0x28,
+		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+		.name			= "pm070wl4",
+	},
 };
 
 struct panel_drv_data {
@@ -479,15 +528,21 @@ static int generic_dpi_panel_probe(struct omap_dss_device *dssdev)
 	struct panel_generic_dpi_data *panel_data = get_panel_data(dssdev);
 	struct panel_config *panel_config = NULL;
 	struct panel_drv_data *drv_data = NULL;
+	char *name = NULL;
 	int i;
 
 	dev_dbg(&dssdev->dev, "probe\n");
 
-	if (!panel_data || !panel_data->name)
+	if (def_panel_name && (strlen(def_panel_name) > 0))
+		name = def_panel_name;
+	else if (panel_data && panel_data->name &&
+						(strlen(panel_data->name) > 0))
+		name = (char *)panel_data->name;
+	else
 		return -EINVAL;
 
 	for (i = 0; i < ARRAY_SIZE(generic_dpi_panels); i++) {
-		if (strcmp(panel_data->name, generic_dpi_panels[i].name) == 0) {
+		if (strcmp(name, generic_dpi_panels[i].name) == 0) {
 			panel_config = &generic_dpi_panels[i];
 			break;
 		}
@@ -613,6 +668,7 @@ static void __exit generic_dpi_panel_drv_exit(void)
 	omap_dss_unregister_driver(&dpi_driver);
 }
 
+module_param_named(name, def_panel_name, charp, 0);
 module_init(generic_dpi_panel_drv_init);
 module_exit(generic_dpi_panel_drv_exit);
 MODULE_LICENSE("GPL");
