@@ -638,7 +638,7 @@ static void nand_command(struct mtd_info *mtd, unsigned int command,
 		 */
 		if (!chip->dev_ready) {
 			udelay(chip->chip_delay);
-			return;
+			goto afterready;
 		}
 	}
 	/*
@@ -648,6 +648,10 @@ static void nand_command(struct mtd_info *mtd, unsigned int command,
 	ndelay(100);
 
 	nand_wait_ready(mtd);
+
+afterready:
+	if (command == NAND_CMD_READ0)
+		ndelay(20);	// need to wait tRR after chip is ready
 }
 
 /**
@@ -761,7 +765,7 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 		 */
 		if (!chip->dev_ready) {
 			udelay(chip->chip_delay);
-			return;
+			goto afterready;
 		}
 	}
 
@@ -772,6 +776,10 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 	ndelay(100);
 
 	nand_wait_ready(mtd);
+
+afterready:
+	if (command == NAND_CMD_READ0)
+		ndelay(20);	// need to wait tRR after chip is ready
 }
 
 /**
