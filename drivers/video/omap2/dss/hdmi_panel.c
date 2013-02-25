@@ -162,18 +162,22 @@ static int hdmi_panel_probe(struct omap_dss_device *dssdev)
 
 	priv = hdmi.dssdev->data;
 
-	r = gpio_request_one(priv->ct_cp_hpd_gpio, GPIOF_OUT_INIT_HIGH,
-				"hdmi_gpio_ct_cp_hpd");
-	if (r) {
-		DSSERR("Could not get HDMI_CT_CP_HPD gpio\n");
-		goto done_err;
+	if (priv->ct_cp_hpd_gpio) {
+		r = gpio_request_one(priv->ct_cp_hpd_gpio, GPIOF_OUT_INIT_HIGH,
+					"hdmi_gpio_ct_cp_hpd");
+		if (r) {
+			DSSERR("Could not get HDMI_CT_CP_HPD gpio\n");
+			goto done_err;
+		}
 	}
 
-	r = gpio_request_one(priv->ls_oe_gpio, GPIOF_OUT_INIT_HIGH,
-				"hdmi_gpio_ls_oe");
-	if (r) {
-		DSSERR("Could not get HDMI_GPIO_LS_OE gpio\n");
-		goto done_err1;
+	if (priv->ls_oe_gpio) {
+		r = gpio_request_one(priv->ls_oe_gpio, GPIOF_OUT_INIT_HIGH,
+					"hdmi_gpio_ls_oe");
+		if (r) {
+			DSSERR("Could not get HDMI_GPIO_LS_OE gpio\n");
+			goto done_err1;
+		}
 	}
 
 	r = gpio_request_one(priv->hpd_gpio, GPIOF_DIR_IN,
