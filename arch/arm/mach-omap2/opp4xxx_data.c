@@ -757,6 +757,7 @@ int __init omap4_opp_init(void)
 			ARRAY_SIZE(omap443x_opp_def_list));
 	} else if (cpu_is_omap446x()) {
 		omap4_abb_trim_update(omap446x_ldo_abb_trim_data);
+#if 0
 		if (omap4_has_perf_silicon()) {
 			opp_def_list_enable_opp(omap446x_opp_def_list,
 					ARRAY_SIZE(omap446x_opp_def_list),
@@ -767,6 +768,7 @@ int __init omap4_opp_init(void)
 					&iva_dev_info,
 					500000000, true);
 		}
+#endif
 		r = omap_init_opp_table(omap446x_opp_def_list,
 			ARRAY_SIZE(omap446x_opp_def_list));
 	} else if (cpu_is_omap447x()) {
