@@ -731,8 +731,15 @@ static const struct hc_driver ehci_omap_hc_driver = {
 	 */
 	.hub_status_data	= ehci_hub_status_data,
 	.hub_control		= ehci_omap_hub_control,
+#if 0
+	/*
+	 * Partly as a result of Errata i571, suspend is not possible when
+	 * using the ULPI PHY (rather than the ULPI TLL) interface.  No wakeup
+	 * event is generated when a device is plugged into a downstream hub.
+	 */
 	.bus_suspend		= ehci_omap_bus_suspend,
 	.bus_resume		= ehci_omap_bus_resume,
+#endif
 
 	.clear_tt_buffer_complete = ehci_clear_tt_buffer_complete,
 };
