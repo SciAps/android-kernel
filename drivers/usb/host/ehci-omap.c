@@ -45,6 +45,8 @@
 #include <linux/gpio.h>
 #include <plat/omap-pm.h>
 #include <plat/usb.h>
+#include <linux/platform_device.h>
+#include <linux/pm.h>
 
 /* EHCI Register Set */
 #define EHCI_INSNREG04					(0xA0)
@@ -661,8 +663,6 @@ static int ehci_omap_bus_suspend(struct usb_hcd *hcd)
 		return ret;
 	}
 
-	pm_runtime_put_sync(dev);
-
 	pm_qos_update_request(&pdata->pm_qos_request,
 					PM_QOS_DEFAULT_VALUE);
 	return ret;
@@ -674,7 +674,6 @@ static int ehci_omap_bus_resume(struct usb_hcd *hcd)
 	struct ehci_hcd_omap_platform_data *pdata = dev->platform_data;
 
 	dev_dbg(dev, "ehci_omap_bus_resume\n");
-	pm_runtime_get_sync(dev);
 
 	pm_qos_update_request(&pdata->pm_qos_request,
 					PM_QOS_MEMORY_THROUGHPUT_USBHOST);
@@ -682,6 +681,32 @@ static int ehci_omap_bus_resume(struct usb_hcd *hcd)
 
 	return ehci_bus_resume(hcd);
 }
+#ifdef CONFIG_PM
+static int ehci_omap_drv_resume(struct device *dev)
+{
+	struct ehci_hcd_omap_platform_data *pdata = dev->platform_data;
+
+	pm_runtime_get_sync(dev);
+	if (pdata->phy_clk)
+		clk_enable(pdata->phy_clk);
+	return 0;
+}
+
+static int ehci_omap_drv_suspend(struct device *dev)
+{
+	struct ehci_hcd_omap_platform_data *pdata = dev->platform_data;
+
+	if (pdata->phy_clk)
+		clk_disable(pdata->phy_clk);
+	pm_runtime_put_sync(dev);
+	return 0;
+}
+
+static struct dev_pm_ops ehci_omap_pm_ops = {
+	.suspend = ehci_omap_drv_suspend,
+	.resume = ehci_omap_drv_resume,
+};
+#endif
 
 static struct platform_driver ehci_hcd_omap_driver = {
 	.probe			= ehci_hcd_omap_probe,
@@ -689,6 +714,9 @@ static struct platform_driver ehci_hcd_omap_driver = {
 	.shutdown		= ehci_hcd_omap_shutdown,
 	.driver = {
 		.name		= "ehci-omap",
+#ifdef CONFIG_PM
+		.pm		= &ehci_omap_pm_ops,
+#endif
 	}
 };
 
@@ -731,7 +759,7 @@ static const struct hc_driver ehci_omap_hc_driver = {
 	 */
 	.hub_status_data	= ehci_hub_status_data,
 	.hub_control		= ehci_omap_hub_control,
-#if 0
+#if 1
 	/*
 	 * Partly as a result of Errata i571, suspend is not possible when
 	 * using the ULPI PHY (rather than the ULPI TLL) interface.  No wakeup

@@ -963,6 +963,7 @@ void __init usbhs_init(const struct usbhs_omap_board_data *pdata)
 		ehci_data.regulator[i] = pdata->regulator[i];
 	}
 	ehci_data.phy_reset = pdata->phy_reset;
+	ehci_data.phy_clk = pdata->phy_clk;
 	ohci_data.es2_compatibility = pdata->es2_compatibility;
 	ehci_data.usbhs_update_sar = &usbhs_update_sar;
 	ohci_data.usbhs_update_sar = &usbhs_update_sar;
