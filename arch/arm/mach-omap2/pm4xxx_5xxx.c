@@ -22,9 +22,11 @@
 #include <linux/gpio.h>
 #include <linux/mfd/omap_control.h>
 #include <linux/power/smartreflex.h>
+#include <linux/wakelock.h>
 
 #include <plat/omap_device.h>
 #include <plat/dvfs.h>
+#include <plat/gpmc.h>
 
 #include <mach/ctrl_module_wkup_44xx.h>
 #include <mach/hardware.h>
@@ -59,6 +61,7 @@ struct power_state {
 
 static LIST_HEAD(pwrst_list);
 u16 pm44xx_errata;
+struct wake_lock omap_pm_wk_lock;
 
 static struct powerdomain *tesla_pwrdm;
 static struct clockdomain *tesla_clkdm;
@@ -434,6 +437,8 @@ void omap_idle_core_notifier(int mpu_next_state, int core_next_state)
 
 	if (core_next_state != PWRDM_POWER_ON)
 		omap2_gpio_prepare_for_idle(1);
+	if (is_suspend)
+		omap_gpmc_save_context();
 
 	/*
 	 * Need to keep thermal monitoring as long as Core is active.
@@ -521,6 +526,8 @@ void omap_enable_core_notifier(int mpu_next_state, int core_next_state)
 
 	if (core_next_state != PWRDM_POWER_ON)
 		omap2_gpio_resume_after_idle();
+	if (is_suspend)
+		omap_gpmc_restore_context();
 
 	/* Coming out of Idle, start monitoring the thermal. */
 	if (!is_suspend && gpu_pd
@@ -1087,6 +1094,22 @@ static int __init omap_pm_init(void)
 	/* setup platform related pmic/oscillator timings */
 	omap4_scrm_setup_timings();
 
+	/*
+	 * The OFF mode isn't fully supported for OMAP4430GP ES2.0 - ES2.2
+	 * due to errata i625
+	 * On ES1.0 OFF mode is not supported due to errata i498
+	 * The cleanest solution to this is to hold a wake lock.  Otherwise,
+	 * the kernel suspend routines will kick in, we'll report that
+	 * suspend isn't supported, it'll try again, ...
+	 */
+	if (cpu_is_omap443x() && omap_type() == OMAP2_DEVICE_TYPE_GP &&
+					omap_rev() < OMAP4430_REV_ES2_3)
+	{
+		wake_lock_init(&omap_pm_wk_lock, WAKE_LOCK_SUSPEND,
+						"errata i625");
+		wake_lock(&omap_pm_wk_lock);
+	}
+
 	ret = pwrdm_for_each(pwrdms_setup, NULL);
 	if (ret) {
 		pr_err("Failed to setup powerdomains\n");
@@ -1136,7 +1159,8 @@ static int __init omap_pm_init(void)
 	 * stability level. Hence disable voltage scaling during Low
 	 * Power states for samples which do not support it.
 	 */
-	if (cpu_is_omap54xx() && !omap5_has_auto_ret()) {
+	if ((cpu_is_omap44xx()) ||
+	    (cpu_is_omap54xx() && !omap5_has_auto_ret())) {
 		u32 mask = OMAP4430_VDD_MPU_I2C_DISABLE_MASK |
 				OMAP4430_VDD_CORE_I2C_DISABLE_MASK |
 				OMAP4430_VDD_IVA_I2C_DISABLE_MASK;
