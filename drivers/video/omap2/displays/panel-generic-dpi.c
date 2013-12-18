@@ -458,6 +458,29 @@ static struct panel_config generic_dpi_panels[] = {
 					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
 		.name			= "pm070wl4",
 	},
+
+	/* Newhaven NHD-5.0-800480TF-ATXL#-CTP */
+	{
+		{
+			.x_res		= 800,
+			.y_res		= 480,
+
+			.pixel_clock	= 25000,
+
+			.hsw		= 128,
+			.hfp		= 40,
+			.hbp		= 88,
+
+			.vsw		= 3,
+			.vfp		= 13,
+			.vbp		= 33,
+		},
+		.acbi			= 0x0,
+		.acb			= 0x28,
+		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+		.name			= "nhd50800480tf-atxl",
+	},
 };
 
 struct panel_drv_data {
