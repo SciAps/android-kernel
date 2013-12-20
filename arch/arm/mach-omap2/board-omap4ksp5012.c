@@ -29,8 +29,8 @@
 #include <linux/i2c/at24.h>
 #include <linux/i2c/tmp102.h>
 #include <linux/mmc/card.h>
-#ifdef CONFIG_TOUCHSCREEN_EDT_FT5X06
-#include <linux/input/edt-ft5x06.h>
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+#include <linux/input/ft5x06_ts.h>
 #endif
 #include <linux/reboot.h>
 #include <linux/regulator/machine.h>
@@ -42,10 +42,10 @@
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
 #include <linux/leds-pca9532.h>
-#include <linux/platform_data/omap-abe-tlv320aic3x.h>
+//#include <linux/platform_data/omap-abe-tlv320aic3x.h>
 #include <linux/omap4_duty_cycle_governor.h>
 
-#include <sound/tlv320aic3x.h>
+//#include <sound/tlv320aic3x.h>
 
 #include <mach/hardware.h>
 #include <asm/hardware/gic.h>
@@ -88,13 +88,14 @@
 #include "prm-regbits-44xx.h"
 #include "prm44xx.h"
 
-#define KSP5012_ETH_GPIO_IRQ	121
-#define KSP5012_ETH_CS		5
-#define KSP5012_FT5x06_GPIO_IRQ	107
+#define KSP5012_ETH_GPIO_IRQ		121
+#define KSP5012_ETH_CS			5
+#define KSP5012_FT5x06_GPIO_IRQ		107
 #define KSP5012_FT5x06_GPIO_WAKE	108
 #define KSP5012_LCD_ENABLE		171
 #define KSP5012_CAM_PWDN		111
 #define TPS62361_GPIO			182	/* VCORE1 power control */
+#define GPIO_WL_EN			106
 
 static struct gpio_led gpio_leds[] = {
 	{
@@ -147,6 +148,7 @@ static void init_duty_governor(void)
 static void init_duty_governor(void){}
 #endif /*CONFIG_OMAP4_DUTY_CYCLE*/
 
+#if 0
 static void __init pcm049_audio_mux_init(void)
 {
 	/* abe_mcbsp3_fsx */
@@ -162,11 +164,9 @@ static void __init pcm049_audio_mux_init(void)
 	omap_mux_init_signal("abe_pdm_ul_data", OMAP_MUX_MODE1 |
 			OMAP_PIN_INPUT | OMAP_OFF_EN);
 }
+#endif
 
 static struct regulator_consumer_supply pcm049_vcc_3v3_consumer_supply[] = {
-	/* tlv320aic3x analog supplies */
-	REGULATOR_SUPPLY("AVDD", "4-0018"),
-	REGULATOR_SUPPLY("DRVDD", "4-0018"),
 	REGULATOR_SUPPLY("vdd33a", "smsc911x.0"),
 	/* max1027 */
 	REGULATOR_SUPPLY("vcc", "4-0064"),
@@ -198,9 +198,6 @@ static struct platform_device pcm049_vcc_3v3_device = {
 
 static struct regulator_consumer_supply pcm049_vcc_1v8_consumer_supply[] = {
 	REGULATOR_SUPPLY("vddvario", "smsc911x.0"),
-	/* tlv320aic3x digital supplies */
-	REGULATOR_SUPPLY("IOVDD", "4-0018"),
-	REGULATOR_SUPPLY("DVDD", "4-0018"),
 };
 
 struct regulator_init_data pcm049_vcc_1v8_initdata = {
@@ -227,10 +224,12 @@ static struct platform_device pcm049_vcc_1v8_device = {
 	},
 };
 
+#if 0
 static struct omap_abe_tlv320aic3x_data pcm049_abe_audio_data = {
 	.card_name = "PCM049",
 	.mclk_freq = 19200000,
 };
+
 
 static struct platform_device pcm049_abe_audio_device = {
 	.name		= "omap-abe-tlv320aic3x",
@@ -239,11 +238,48 @@ static struct platform_device pcm049_abe_audio_device = {
 		.platform_data = &pcm049_abe_audio_data,
         },
 };
+#endif
+
+#if 0
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+static struct regulator_consumer_supply pcm049_vmmc1_supply = {
+        .supply = "vmmc",
+	.dev_name = "omap_hsmmc.0",
+};
+
+static struct regulator_init_data pcm049_vmmc1 = {
+        .constraints = {
+//                .valid_ops_mask = REGULATOR_CHANGE_STATUS,
+		.always_on	= true,
+        },
+        .num_consumer_supplies = 1,
+        .consumer_supplies = &pcm049_vmmc1_supply,
+};
+static struct fixed_voltage_config pcm049_vedt = {
+	.supply_name			= "vedt",
+	.microvolts			= 3300000, /* 3.3V */
+	.startup_delay			= 30000, /* 30msec */
+	.gpio				= -EINVAL,
+	.enabled_at_boot		= 0,
+	.init_data = &pcm049_vmmc1,
+};
+
+static struct platform_device omap_vedt_device = {
+	.name		= "reg-fixed-voltage",
+	.id		= ARRAY_SIZE(pcm049_vcc_3v3_consumer_supply)
+				+ ARRAY_SIZE(pcm049_vcc_1v8_consumer_supply)
+				+ 1,
+	.dev = {
+		.platform_data = &pcm049_vedt,
+	},
+};
+#endif
+#endif
 
 #ifdef CONFIG_WL12XX_PLATFORM_DATA
 static struct regulator_consumer_supply pcm049_vmmc5_supply = {
         .supply = "vmmc",
-        .dev_name = "omap_hsmmc.4",
+	.dev_name = "omap_hsmmc.4",
 };
 
 static struct regulator_init_data pcm049_vmmc5 = {
@@ -254,11 +290,13 @@ static struct regulator_init_data pcm049_vmmc5 = {
         .consumer_supplies = &pcm049_vmmc5_supply,
 };
 static struct fixed_voltage_config pcm049_vwlan = {
-	.supply_name = "vwl1271",
-	.microvolts = 1800000, /* 1.8V */
-	.startup_delay = 70000, /* 70msec */
-	.enable_high = 1,
-	.enabled_at_boot = 0,
+	.supply_name			= "vwl1271",
+	.microvolts			= 1800000, /* 1.8V */
+	.startup_delay			= 70000, /* 70msec */
+	.gpio				= GPIO_WL_EN,
+//	.gpio				= -EINVAL,
+	.enable_high			= 1,
+	.enabled_at_boot		= 0,
 	.init_data = &pcm049_vmmc5,
 };
 
@@ -270,14 +308,10 @@ static struct platform_device omap_vwlan_device = {
 		.platform_data = &pcm049_vwlan,
 	},
 };
+
+//struct wl12xx_platform_data pcm049_wlan_data __initdata;
 #endif	// ifdef CONFIG_WL12XX_PLATFORM_DATA
 
-#ifdef CONFIG_WL12XX_PLATFORM_DATA
-#define GPIO_WIFI_IRQ	109
-static struct wl12xx_platform_data omap_pcm049_wlan_data  __initdata = {
-	.board_ref_clock = 2,
-};
-#endif
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 static void pcm049_wl1271_init_card(struct mmc_card *card)
 {
@@ -288,49 +322,6 @@ static void pcm049_wl1271_init_card(struct mmc_card *card)
 	card->cis.max_dtr = 14000000;
 }
 
-static void __init pcm049_wifi_init(void)
-{
-	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
-				OMAP_PIN_OFF_WAKEUPENABLE);
-
-	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	omap_mux_init_signal("sdmmc5_dat0.sdmmc5_dat0",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	omap_mux_init_signal("sdmmc5_dat1.sdmmc5_dat1",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	omap_mux_init_signal("sdmmc5_dat2.sdmmc5_dat2",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-	omap_mux_init_signal("sdmmc5_dat3.sdmmc5_dat3",
-				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-
-#ifdef CONFIG_WL12XX_PLATFORM_DATA
-	omap_pcm049_wlan_data.irq = gpio_to_irq(GPIO_WIFI_IRQ);
-	if (wl12xx_set_platform_data(&omap_pcm049_wlan_data))
-		pr_err("error setting wl12xx data\n");
-	if (platform_device_register(&omap_vwlan_device))
-		pr_err("Error registering wl12xx device\n");
-#endif
-#define GPIO_WL_EN     106
-	if (gpio_request(GPIO_WL_EN, "wl-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
-	else if (gpio_direction_output(GPIO_WL_EN, 1))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_WL_EN);
-	else
-		omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
-
-#define GPIO_BT_EN     173
-	/* Currently no support for the BT portion of the TiWi-R2 */
-	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
-	else if (gpio_direction_output(GPIO_BT_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_BT_EN);
-}
 #endif	// if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 
 static struct omap_musb_board_data musb_board_data = {
@@ -343,6 +334,8 @@ static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
 		.caps		= MMC_CAP_4_BIT_DATA,
+//ne		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+//		.ocr_mask	= MMC_VDD_165_195,
 		.gpio_wp	= -EINVAL,
 		.gpio_cd	= -EINVAL,
 	},
@@ -352,7 +345,9 @@ static struct omap2_hsmmc_info mmc[] = {
 		.name		= "wl1271",
 		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD,
 		.gpio_cd	= -EINVAL,
-		.ocr_mask	= MMC_VDD_165_195,
+//		.ocr_mask	= MMC_VDD_165_195, /* 1V8 */
+//		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+		.built_in	= true,
 		.nonremovable	= true,
 		.init_card	= pcm049_wl1271_init_card,
 		.gpio_wp	= -EINVAL,
@@ -406,6 +401,7 @@ static int pcm049_hsmmc_late_init(struct device *dev)
 		dev_err(dev, "%s: NULL platform data\n", __func__);
 		return -EINVAL;
 	}
+
 	/* Setting MMC1 Card detect Irq */
 	if (pdev->id == 0) {
 		ret = twl6030_mmc_card_detect_config();
@@ -522,7 +518,9 @@ static struct twl4030_platform_data pcm049_twldata;
 static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_3v3_device,
 	&pcm049_vcc_1v8_device,
-	&pcm049_abe_audio_device,
+//	&omap_vwlan_device,
+//	&omap_vedt_device,
+//	&pcm049_abe_audio_device,
 	&leds_gpio,
 };
 
@@ -544,21 +542,12 @@ static struct tmp102_platform_data tmp102_omap_info = {
 	.domain = "pcb", /* for hotspot extrapolation */
 };
 
-#ifdef CONFIG_TOUCHSCREEN_EDT_FT5X06
-static struct edt_ft5x06_platform_data pba_ft5x06_pdata = {
-	.reset_pin      =  -1,          /* static high */
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
+	.irq_pin	= KSP5012_FT5x06_GPIO_IRQ,
+	.wake_pin	= KSP5012_FT5x06_GPIO_WAKE,
 };
 #endif
-
-static struct aic3x_setup_data pcm049_aic33_setup = {
-	.gpio_func[0] = AIC3X_GPIO1_FUNC_DISABLED,
-	.gpio_func[1] = AIC3X_GPIO2_FUNC_DIGITAL_MIC_INPUT,
-};
-
-static struct aic3x_pdata pcm049_aic33_data = {
-	.setup = &pcm049_aic33_setup,
-	.gpio_reset = -1,
-};
 
 static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	{
@@ -588,19 +577,22 @@ static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
  * to change the pcm049_i2c_4_boardinfo irq settings in pcm049_i2c_init().
  */
 static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
-#ifdef CONFIG_TOUCHSCREEN_EDT_FT5X06
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
 	{
 		/* Touch controller built into LCD panel (capacitive) */
-		I2C_BOARD_INFO("edt-ft5x06", 0x38),	/* Touch controller */
+		I2C_BOARD_INFO(FT5X0X_NAME, 0x38),	/* Touch controller */
+		.irq = OMAP_GPIO_IRQ(KSP5012_FT5x06_GPIO_IRQ),
 		.platform_data = &pba_ft5x06_pdata,
 	},
 #endif
 
 // TODO: replace with WM8974
-//	{
-//		I2C_BOARD_INFO("tlv320aic3007", 0x18),	/* Audio */
-//		.platform_data = &pcm049_aic33_data,
-//	},
+#if 0
+	{
+		I2C_BOARD_INFO("tlv320aic3007", 0x18),	/* Audio */
+		.platform_data = &pcm049_aic33_data,
+	},
+#endif
 };
 
 static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
@@ -639,18 +631,6 @@ static int __init pcm049_i2c_init(void)
 	omap_register_i2c_bus_board_data(3, &pcm049_i2c_3_bus_pdata);
 	omap_register_i2c_bus_board_data(4, &pcm049_i2c_4_bus_pdata);
 
-#ifdef CONFIG_TOUCHSCREEN_EDT_FT5X06
-	if (omap_mux_init_gpio(KSP5012_FT5x06_GPIO_WAKE, OMAP_PIN_OUTPUT))
-		printk(KERN_ERR "Failed to mux GPIO%d for FT5x06 WAKE\n",
-			KSP5012_FT5x06_GPIO_WAKE);
-	else
-		gpio_direction_output(KSP5012_FT5x06_GPIO_WAKE, 1);
-		
-	if (omap_mux_init_gpio(KSP5012_FT5x06_GPIO_IRQ, OMAP_PIN_INPUT))
-		printk(KERN_ERR "Failed to mux GPIO%d for FT5x06 IRQ\n",
-			KSP5012_FT5x06_GPIO_IRQ);
-#endif
-
 	omap4_pmic_get_config(&pcm049_twldata, TWL_COMMON_PDATA_USB,
 			TWL_COMMON_REGULATOR_VDAC |
 			TWL_COMMON_REGULATOR_VAUX2 |
@@ -678,9 +658,10 @@ static int __init pcm049_i2c_init(void)
 				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
 	omap_register_i2c_bus(3, 100, pcm049_i2c_3_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_3_boardinfo));
-#ifdef CONFIG_TOUCHSCREEN_EDT_FT5X06
-	pcm049_i2c_4_boardinfo[1].irq =
-			gpio_to_irq(KSP5012_FT5x06_GPIO_IRQ),
+
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+//        pcm049_i2c_4_boardinfo[0].irq =
+//                        gpio_to_irq(KSP5012_FT5x06_GPIO_IRQ),
 #endif
 	omap_register_i2c_bus(4, 100, pcm049_i2c_4_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_4_boardinfo));
@@ -708,6 +689,13 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(SDMMC1_DAT7, OMAP_MUX_MODE3 | OMAP_PIN_INPUT),
 	/* WLAN POWER ENABLE - GPIO 106 */
 	OMAP4_MUX(SDMMC1_DAT4, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+#endif
+
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+	/* EDT FT5X06 WAKE - GPIO 108 */
+	OMAP4_MUX(SDMMC1_DAT6, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+	/* EDT FT5X06 IRQ - GPIO 107 */
+	OMAP4_MUX(SDMMC1_DAT5, OMAP_MUX_MODE3 | OMAP_PIN_INPUT),
 #endif
 	/* BT HCI UART */
 	OMAP4_MUX(UART2_TX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
@@ -886,6 +874,7 @@ static void __init pcm049_display_init(void)
 {
 	omap_vram_set_sdram_vram(PCM049_FB_RAM_SIZE, 0);
 	omap_mux_init_gpio(KSP5012_LCD_ENABLE, OMAP_PIN_OUTPUT);
+
 	if ((gpio_request(KSP5012_LCD_ENABLE, "DISP_ENA") == 0) &&
 		(gpio_direction_output(KSP5012_LCD_ENABLE, 1) == 0)) {
 		gpio_export(KSP5012_LCD_ENABLE, 0);
@@ -896,33 +885,161 @@ static void __init pcm049_display_init(void)
 	omap_display_init(&pcm049_dss_data);
 }
 
+#if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
+#define GPIO_BT_EN     173
+static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
+{
+	if (on) {
+		gpio_direction_output(GPIO_WL_EN, 1);
+		mdelay(1);
+	} else {
+		gpio_direction_output(GPIO_WL_EN, 0);
+	}
+
+	return 0;
+}
+
+#ifdef CONFIG_WL12XX_PLATFORM_DATA
+#define GPIO_WIFI_IRQ 109
+static struct wl12xx_platform_data omap_pcm049_wlan_data  __initdata = {
+	.board_ref_clock = 2,
+};
+#endif
+
+static void __init pcm049_wl12xx_init(void)
+{
+	struct platform_device *pdev;
+	struct omap_mmc_platform_data *pdata;
+	
+	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat0.sdmmc5_dat0",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat1.sdmmc5_dat1",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat2.sdmmc5_dat2",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat3.sdmmc5_dat3",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+
+#ifdef CONFIG_WL12XX_PLATFORM_DATA
+	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
+				OMAP_PIN_OFF_WAKEUPENABLE);
+	omap_pcm049_wlan_data.irq = gpio_to_irq(GPIO_WIFI_IRQ);
+	if (wl12xx_set_platform_data(&omap_pcm049_wlan_data))
+		pr_err("error setting wl12xx data\n");
+	if (platform_device_register(&omap_vwlan_device))
+		pr_err("Error registering wl12xx device\n");
+#endif
+#if 0
+	if (gpio_request_one(GPIO_WL_EN, GPIOF_OUT_INIT_LOW, "wl-en") < 0)
+		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
+	else if (gpio_direction_output(GPIO_WL_EN, 1))
+		printk(KERN_WARNING "GPIO#%d cannot be configured as "
+				"output\n", GPIO_WL_EN);
+	else
+		omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
+#endif
+
+	/* Currently no support for the BT portion of the TiWi-R2 */
+	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
+	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
+		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
+	else if (gpio_direction_output(GPIO_BT_EN, 0))
+		printk(KERN_WARNING "GPIO#%d cannot be configured as "
+				"output\n", GPIO_BT_EN);
+
+#if 0
+	omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
+	if (gpio_request(GPIO_WL_EN, "wl-en") < 0)
+		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
+	else if (gpio_direction_output(GPIO_WL_EN, 0))
+		printk(KERN_WARNING "GPIO#%d cannot be configured as "
+				"output\n", GPIO_WL_EN);
+
+	pdev = mmc[1].pdev;
+	if (!pdev) {
+		pr_err("wl12xx mmc device init failed\n");
+		goto out;
+	}
+
+	pdata = pdev->dev.platform_data;
+	if (!pdata) {
+		pr_err("wl12xx platform data is not set\n");
+		goto out;
+	}
+
+	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
+	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
+		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
+	else if (gpio_direction_output(GPIO_BT_EN, 0))
+		printk(KERN_WARNING "GPIO#%d cannot be configured as "
+				"output\n", GPIO_BT_EN);
+#ifdef CONFIG_WL12XX_PLATFORM_DATA
+#define GPIO_WIFI_IRQ  109
+	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
+				OMAP_PIN_OFF_WAKEUPENABLE);
+	pcm049_wlan_data.irq = gpio_to_irq(GPIO_WIFI_IRQ);
+	pcm049_wlan_data.board_ref_clock = 2;
+	wl12xx_set_platform_data(&pcm049_wlan_data);
+        if (platform_device_register(&omap_vwlan_device))
+                pr_err("Error registering wl12xx device\n");
+#endif
+#endif
+
+//	pdata->slots[0].set_power = wl12xx_set_power;
+out:
+	return;
+}
+#endif
+
 static void __init pcm049_init(void)
 {
 	int status;
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
+
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+//	if (platform_device_register(&omap_vedt_device))
+//		pr_err("Error registering vedt device\n");
+
+//	omap_mux_init_gpio(KSP5012_FT5x06_GPIO_WAKE, OMAP_PIN_OUTPUT);
+#if 0
+	/* EDT FT5x06 GPIO_WAKE */
+	omap_mux_init_gpio(KSP5012_FT5x06_GPIO_WAKE, OMAP_PIN_OUTPUT);
+	if ((gpio_request(KSP5012_FT5x06_GPIO_WAKE, "EDT_GPIO_WAKE") == 0) &&
+		(gpio_direction_output(KSP5012_FT5x06_GPIO_WAKE, 1) == 0)) {
+		gpio_export(KSP5012_FT5x06_GPIO_WAKE, 0);
+		gpio_set_value(KSP5012_FT5x06_GPIO_WAKE, 1);
+	} else
+		printk(KERN_ERR "could not obtain gpio for EDT_GPIO_WAKE");
+#endif
+#endif
+
 	omap_mux_init_signal("fref_clk4_req", OMAP_MUX_MODE1);
-	pcm049_audio_mux_init();
+//	pcm049_audio_mux_init();
 	omap_create_board_props();
-	pcm049_i2c_init();
 
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
+	pcm049_i2c_init();
 
 	omap4_board_serial_init();
 	pcm049_init_smsc911x();
-#if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
-	pcm049_wifi_init();
-#endif
 	pcm049_hsmmc_init(mmc);
+
 	pcm049_ehci_ohci_init();
 	usb_musb_init(&musb_board_data);
-
 	omap_init_dmm_tiler();
 	omap4_register_ion();
 	pcm049_display_init();
 	init_duty_governor();
-
 	pcm049_init_nand();
+
+#if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
+	pcm049_wl12xx_init();
+#endif
 
 	if (cpu_is_omap446x()) {
 		/* Vsel0 = gpio, vsel1 = gnd */

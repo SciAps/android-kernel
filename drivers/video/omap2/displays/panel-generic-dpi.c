@@ -465,15 +465,14 @@ static struct panel_config generic_dpi_panels[] = {
 			.x_res		= 800,
 			.y_res		= 480,
 
-			.pixel_clock	= 25000,
+			.pixel_clock	= 40000,
+			.hsw		= 47,
+			.hbp		= 39,
+			.hfp		= 39,
 
-			.hsw		= 128,
-			.hfp		= 40,
-			.hbp		= 88,
-
-			.vsw		= 3,
+			.vsw		= 2,
 			.vfp		= 13,
-			.vbp		= 33,
+			.vbp		= 29,
 		},
 		.acbi			= 0x0,
 		.acb			= 0x28,
