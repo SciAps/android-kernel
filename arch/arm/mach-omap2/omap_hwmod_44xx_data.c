@@ -5517,8 +5517,12 @@ static struct omap_hwmod_class_sysconfig omap44xx_uart_sysc = {
 	.sysc_flags	= (SYSC_HAS_AUTOIDLE | SYSC_HAS_ENAWAKEUP |
 			   SYSC_HAS_SIDLEMODE | SYSC_HAS_SOFTRESET |
 			   SYSS_HAS_RESET_STATUS),
+#if 0
 	.idlemodes	= (SIDLE_FORCE | SIDLE_NO | SIDLE_SMART |
 			   SIDLE_SMART_WKUP),
+#else
+	.idlemodes	= (SIDLE_FORCE | SIDLE_NO | SIDLE_SMART),
+#endif
 	.sysc_fields	= &omap_hwmod_sysc_type1,
 };
 
