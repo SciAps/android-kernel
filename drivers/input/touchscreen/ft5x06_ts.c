@@ -411,7 +411,7 @@ FTS_BOOL byte_read(FTS_BYTE* pbt_buf, FTS_BYTE bt_len)
 
 static unsigned char CTPM_FW[]=
 {
-#include "ft_app.i"
+//#include "ft_app.i"
 };
 
 E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(FTS_BYTE* pbt_buf, FTS_DWRD dw_lenth)
