@@ -4,6 +4,13 @@
 
 menu "Misc devices"
 
+config PLAYXSVF_GPIO
+	tristate "Playxsvf GPIO"
+	depends on GPIOLIB
+	default n
+	help
+		Program Xilinx devices via bit-bang JTAG GPIO
+
 config SENSORS_LIS3LV02D
 	tristate
 	depends on INPUT
