@@ -96,6 +96,32 @@
 #define KSP5012_CAM_PWDN		111
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
+#define GPIO_POWER_BUTTON	139
+
+static struct gpio_keys_button ksp5012_gpio_keys[] = {
+	{
+		.desc			= "power_button",
+		.type 			= EV_KEY,
+		.code			= KEY_POWER,
+		.gpio			= GPIO_POWER_BUTTON,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 10,
+	},
+};
+
+static struct gpio_keys_platform_data ksp5012_gpio_keys_data = {
+	.buttons	= ksp5012_gpio_keys,
+	.nbuttons	= ARRAY_SIZE(ksp5012_gpio_keys),
+};
+
+static struct platform_device ksp5012_gpio_keys_device = {
+	.name	= "gpio-keys",
+	.id = -1,
+	.dev	= {
+		.platform_data	= &ksp5012_gpio_keys_data,
+	},
+};
 
 static struct gpio_led gpio_leds[] = {
 	{
@@ -522,6 +548,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 //	&omap_vedt_device,
 //	&pcm049_abe_audio_device,
 	&leds_gpio,
+	&ksp5012_gpio_keys_device
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -719,6 +746,9 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(ABE_MCBSP2_DX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_112
 	OMAP4_MUX(ABE_MCBSP1_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_114
 	OMAP4_MUX(ABE_MCBSP1_DR, OMAP_MUX_MODE3 | OMAP_PIN_INPUT), // GPIO_115
+
+	/* Wake signal */
+	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
 
 	/* GPS */
 
