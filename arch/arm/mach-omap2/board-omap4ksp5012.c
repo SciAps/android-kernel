@@ -44,6 +44,7 @@
 #include <linux/leds-pca9532.h>
 //#include <linux/platform_data/omap-abe-tlv320aic3x.h>
 #include <linux/omap4_duty_cycle_governor.h>
+#include <linux/pwm_backlight.h>
 
 //#include <sound/tlv320aic3x.h>
 
@@ -61,6 +62,7 @@
 #include <plat/gpmc-smsc911x.h>
 #include <plat/nand.h>
 #include <plat/mmc.h>
+#include <plat/pwm.h>
 #include <plat/remoteproc.h>
 #include <plat/vram.h>
 #include <plat/clock.h>
@@ -146,6 +148,35 @@ static struct platform_device leds_gpio = {
 	.id	= -1,
 	.dev	= {
 		.platform_data	= &gpio_led_info,
+	},
+};
+
+static struct omap2_pwm_platform_config pwm_config = {
+	.timer_id	= 9, // GPT9_PWM_EVT
+	.polarity	= 1, // Active-high
+};
+
+static struct platform_device pwm_device = {
+	.name	= "omap-pwm",
+	.id	= 0,
+	.dev	= {
+		.platform_data = &pwm_config
+	},
+};
+
+static struct platform_pwm_backlight_data ksp5012_backlight_data = {
+	.pwm_id         = 0,
+	.max_brightness = 255,
+	.dft_brightness = 127,
+	.pwm_period_ns  = 1000,
+};
+
+static struct platform_device ksp5012_backlight_device = {
+	.name   = "pwm-backlight",
+	.id	= -1,
+	.dev    = {
+		.parent = &pwm_device.dev,
+		.platform_data  = &ksp5012_backlight_data,
 	},
 };
 
@@ -548,7 +579,9 @@ static struct platform_device *pcm049_devices[] __initdata = {
 //	&omap_vedt_device,
 //	&pcm049_abe_audio_device,
 	&leds_gpio,
-	&ksp5012_gpio_keys_device
+	&ksp5012_gpio_keys_device,
+	&pwm_device,
+	&ksp5012_backlight_device,
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -818,6 +851,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(DPM_EMU18, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 	/* dispc2_data0 */
 	OMAP4_MUX(DPM_EMU19, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
+	/* dmtimer9_pwm_evt */
+	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 #endif	/* ifdef CONFIG_OMAP2_DSS_DPI */
 	OMAP4_MUX(SYS_NIRQ1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP |
 				OMAP_PIN_OFF_WAKEUPENABLE),

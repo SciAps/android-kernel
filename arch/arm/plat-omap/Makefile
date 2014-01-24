@@ -31,3 +31,5 @@ obj-$(CONFIG_ION_OMAP) += android-display.o
 obj-$(CONFIG_ION_OMAP) += sgx_omaplfb.o
 
 obj-$(CONFIG_DSSCOMP) += omap_dsscomp.o
+
+obj-$(CONFIG_OMAP_PWM) += pwm.o
