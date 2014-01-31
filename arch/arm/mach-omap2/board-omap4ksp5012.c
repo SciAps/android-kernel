@@ -96,6 +96,7 @@
 #define KSP5012_FT5x06_GPIO_WAKE	108
 #define KSP5012_LCD_ENABLE		171
 #define KSP5012_CAM_PWDN		111
+#define KSP5012_RTC_IRQ			117
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_POWER_BUTTON	139
@@ -630,6 +631,10 @@ static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
 };
 
 static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("rtc8564", 0x51),
+		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
+	}
 };
 
 /*
@@ -681,6 +686,8 @@ static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
 static int __init pcm049_i2c_init(void)
 {
+	int err;
+
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
 	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
@@ -710,6 +717,16 @@ static int __init pcm049_i2c_init(void)
 		pcm049_twldata.reg_setup_script = omap4430_twl6030_setup;
 	else if (cpu_is_omap446x())
 		pcm049_twldata.reg_setup_script = omap4460_twl6030_setup;
+
+	/* RTC-8564 IRQ mux */
+//	omap_mux_init_signal("abe_mcbsp1_fsx.gpio_117",
+//				OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
+	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_OUT_INIT_HIGH, "rtc8564_irq");
+	if (err < 0)
+		pr_err("Failed to request GPIO %d, error %d\n",
+			KSP5012_RTC_IRQ, err);
+
 
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
@@ -773,6 +790,9 @@ static struct omap_board_mux board_mux[] __initdata = {
 	
 	/* CAM (OV5650) PWDN */
 	OMAP4_MUX(ABE_MCBSP2_DR, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+
+	/* RTC-8564 IRQ */
+	OMAP4_MUX(ABE_MCBSP1_FSX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_117
 
 	/* FPGA */
 	OMAP4_MUX(ABE_MCBSP2_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_110

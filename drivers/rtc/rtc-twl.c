@@ -274,6 +274,8 @@ static int twl_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	u8 save_control;
 	u8 rtc_control;
 
+	printk("TWL6030: READING RTC TIME\n");
+
 	ret = twl_rtc_read_u8(twl_rtc, &save_control, REG_RTC_CTRL_REG);
 	if (ret < 0) {
 		dev_err(dev, "%s: reading CTRL_REG, error %d\n", __func__, ret);
@@ -330,6 +332,8 @@ static int twl_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	tm->tm_mon = bcd2bin(rtc_data[4]) - 1;
 	tm->tm_year = bcd2bin(rtc_data[5]) + 100;
 
+	printk("TWL6030: FINISHED READING RTC TIME\n");
+
 	return ret;
 }
 
@@ -346,6 +350,8 @@ static int twl_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	rtc_data[4] = bin2bcd(tm->tm_mday);
 	rtc_data[5] = bin2bcd(tm->tm_mon + 1);
 	rtc_data[6] = bin2bcd(tm->tm_year - 100);
+
+	printk("TWL6030: SETTING RTC TIME\n");
 
 	/* Stop RTC while updating the TC registers */
 	ret = twl_rtc_read_u8(twl_rtc, &save_control, REG_RTC_CTRL_REG);
@@ -364,6 +370,8 @@ static int twl_rtc_set_time(struct device *dev, struct rtc_time *tm)
 		dev_err(dev, "rtc_set_time error %d\n", ret);
 		goto out;
 	}
+
+	printk("TWL6030: FINISHED SETTING RTC TIME\n");
 
 	/* Start back RTC */
 	save_control |= BIT_RTC_CTRL_REG_STOP_RTC_M;
@@ -429,6 +437,8 @@ static int twl_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alm)
 		goto out;
 	}
 
+	printk("TWL6030: SETTING RTC ALARM\n");
+
 	if (alm->enabled)
 		ret = twl_rtc_alarm_irq_enable(dev, 1);
 out:
@@ -453,9 +463,15 @@ static irqreturn_t twl_rtc_interrupt(int irq, void *_twl_rtc)
 	 * by reading RTS_INTERRUPTS_REGISTER[IT_TIMER,IT_ALARM]
 	 */
 	if (rd_reg & BIT_RTC_STATUS_REG_ALARM_M)
+	{
+		printk("TWL6030: ALARM IRQ\n");
 		events = RTC_IRQF | RTC_AF;
+	}
 	else
+	{
+		printk("TWL6030: RTC IRQ\n");
 		events = RTC_IRQF | RTC_PF;
+	}
 
 	res = twl_rtc_write_u8(twl_rtc,
 				rd_reg | BIT_RTC_STATUS_REG_ALARM_M,

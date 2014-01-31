@@ -80,6 +80,8 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 		{ client->addr, I2C_M_RD, 13, buf },	/* read status + date */
 	};
 
+	printk("RTC-8564: GETTING DATE/TIME\n");
+
 	/* read registers */
 	if ((i2c_transfer(client->adapter, msgs, 2)) != 2) {
 		dev_err(&client->dev, "%s: read error\n", __func__);
@@ -124,6 +126,8 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 	if (rtc_valid_tm(tm) < 0)
 		dev_err(&client->dev, "retrieved date/time is not valid.\n");
 
+	printk("RTC-8564: FINISHED GETTING DATE/TIME\n");
+
 	return 0;
 }
 
@@ -138,6 +142,8 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 		__func__,
 		tm->tm_sec, tm->tm_min, tm->tm_hour,
 		tm->tm_mday, tm->tm_mon, tm->tm_year, tm->tm_wday);
+
+	printk("RTC-8564: SETTING DATE/TIME\n");
 
 	/* hours, minutes and seconds */
 	buf[PCF8563_REG_SC] = bin2bcd(tm->tm_sec);
@@ -169,6 +175,8 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 			return -EIO;
 		}
 	};
+
+	printk("RTC-8564: FINISHED SETTING DATE/TIME\n");
 
 	return 0;
 }
