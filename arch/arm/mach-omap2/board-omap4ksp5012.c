@@ -722,7 +722,7 @@ static int __init pcm049_i2c_init(void)
 //	omap_mux_init_signal("abe_mcbsp1_fsx.gpio_117",
 //				OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
-	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_OUT_INIT_HIGH, "rtc8564_irq");
+	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_IN, "rtc8564_irq");
 	if (err < 0)
 		pr_err("Failed to request GPIO %d, error %d\n",
 			KSP5012_RTC_IRQ, err);
