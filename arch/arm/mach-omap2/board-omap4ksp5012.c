@@ -45,6 +45,7 @@
 //#include <linux/platform_data/omap-abe-tlv320aic3x.h>
 #include <linux/omap4_duty_cycle_governor.h>
 #include <linux/pwm_backlight.h>
+#include <linux/input/adxl34x.h>
 
 //#include <sound/tlv320aic3x.h>
 
@@ -97,6 +98,9 @@
 #define KSP5012_LCD_ENABLE		171
 #define KSP5012_CAM_PWDN		111
 #define KSP5012_RTC_IRQ			117
+#define KSP5012_ADXL34X_IRQ1		175
+#define KSP5012_ADXL34X_IRQ2		176
+#define KSP5012_ADXL34X_IRQ		KSP5012_ADXL34X_IRQ1
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_POWER_BUTTON	139
@@ -610,6 +614,44 @@ static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
 };
 #endif
 
+#ifdef CONFIG_INPUT_ADXL34X
+static const struct adxl34x_platform_data adxl34x_info = {
+	.x_axis_offset = 0,
+	.y_axis_offset = 0,
+	.z_axis_offset = 0,
+	.tap_threshold = 0x31,
+	.tap_duration = 0x10,
+	.tap_latency = 0x60,
+	.tap_window = 0xF0,
+	.tap_axis_control = ADXL_TAP_X_EN | ADXL_TAP_Y_EN | ADXL_TAP_Z_EN,
+	.act_axis_control = 0xFF,
+	.activity_threshold = 5,
+	.inactivity_threshold = 3,
+	.inactivity_time = 4,
+	.free_fall_threshold = 0x7,
+	.free_fall_time = 0x20,
+	.data_rate = 0x8,
+	.data_range = ADXL_FULL_RES,
+ 
+	.ev_type = EV_ABS,
+	.ev_code_x = ABS_X,		/* EV_REL */
+	.ev_code_y = ABS_Y,		/* EV_REL */
+	.ev_code_z = ABS_Z,		/* EV_REL */
+ 
+	.ev_code_tap = {BTN_0, BTN_1, BTN_2}, /* EV_KEY x,y,z */
+ 
+/*	.ev_code_ff = KEY_F,*/		/* EV_KEY */
+/*	.ev_code_act_inactivity = KEY_A,*/	/* EV_KEY */
+	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
+	.fifo_mode = ADXL_FIFO_STREAM,
+	.orientation_enable = 0,
+	.deadzone_angle = ADXL_DEADZONE_ANGLE_10p8,
+	.divisor_length = ADXL_LP_FILTER_DIVISOR_16,
+	/* EV_KEY {+Z, +Y, +X, -X, -Y, -Z} */
+	.ev_codes_orient_3d = {BTN_Z, BTN_Y, BTN_X, BTN_A, BTN_B, BTN_C},
+};
+#endif
+
 static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("twl6030", 0x48),
@@ -650,7 +692,13 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 		.platform_data = &pba_ft5x06_pdata,
 	},
 #endif
-
+#ifdef CONFIG_INPUT_ADXL34X_I2C
+        {
+                I2C_BOARD_INFO("adxl34x", 0x53),
+                .irq = OMAP_GPIO_IRQ(KSP5012_ADXL34X_IRQ),
+                .platform_data = (void *)&adxl34x_info,
+        },
+#endif
 // TODO: replace with WM8974
 #if 0
 	{
@@ -793,6 +841,10 @@ static struct omap_board_mux board_mux[] __initdata = {
 
 	/* RTC-8564 IRQ */
 	OMAP4_MUX(ABE_MCBSP1_FSX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_117
+
+	/* ADXL34X IRQ */
+	OMAP4_MUX(KPD_ROW3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPIO_175
+	OMAP4_MUX(KPD_ROW4, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPIO_176
 
 	/* FPGA */
 	OMAP4_MUX(ABE_MCBSP2_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_110
