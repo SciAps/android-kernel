@@ -79,6 +79,11 @@
 #include <video/omap-panel-generic-dpi.h>
 #endif
 
+/* for TI Shared Transport devices */
+#include <linux/skbuff.h>
+#include <linux/ti_wilink_st.h>
+#include <linux/wakelock.h>
+
 #include "common.h"
 #include "omap4_ion.h"
 #include "omap_ram_console.h"
@@ -96,9 +101,11 @@
 #define KSP5012_FT5x06_GPIO_WAKE	108
 #define KSP5012_LCD_ENABLE		171
 #define KSP5012_CAM_PWDN		111
+#define KSP5012_RTC_IRQ			117
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
-#define GPIO_POWER_BUTTON	139
+#define GPIO_BT_EN			173
+#define GPIO_POWER_BUTTON		139
 
 static struct gpio_keys_button ksp5012_gpio_keys[] = {
 	{
@@ -351,7 +358,6 @@ static struct fixed_voltage_config pcm049_vwlan = {
 	.microvolts			= 1800000, /* 1.8V */
 	.startup_delay			= 70000, /* 70msec */
 	.gpio				= GPIO_WL_EN,
-//	.gpio				= -EINVAL,
 	.enable_high			= 1,
 	.enabled_at_boot		= 0,
 	.init_data = &pcm049_vmmc5,
@@ -366,7 +372,6 @@ static struct platform_device omap_vwlan_device = {
 	},
 };
 
-//struct wl12xx_platform_data pcm049_wlan_data __initdata;
 #endif	// ifdef CONFIG_WL12XX_PLATFORM_DATA
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
@@ -630,6 +635,10 @@ static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
 };
 
 static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("rtc8564", 0x51),
+		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
+	}
 };
 
 /*
@@ -681,6 +690,8 @@ static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
 static int __init pcm049_i2c_init(void)
 {
+	int err;
+
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
 	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
@@ -710,6 +721,16 @@ static int __init pcm049_i2c_init(void)
 		pcm049_twldata.reg_setup_script = omap4430_twl6030_setup;
 	else if (cpu_is_omap446x())
 		pcm049_twldata.reg_setup_script = omap4460_twl6030_setup;
+
+	/* RTC-8564 IRQ mux */
+//	omap_mux_init_signal("abe_mcbsp1_fsx.gpio_117",
+//				OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
+	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_IN, "rtc8564_irq");
+	if (err < 0)
+		pr_err("Failed to request GPIO %d, error %d\n",
+			KSP5012_RTC_IRQ, err);
+
 
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
@@ -757,11 +778,6 @@ static struct omap_board_mux board_mux[] __initdata = {
 	/* EDT FT5X06 IRQ - GPIO 107 */
 	OMAP4_MUX(SDMMC1_DAT5, OMAP_MUX_MODE3 | OMAP_PIN_INPUT),
 #endif
-	/* BT HCI UART */
-	OMAP4_MUX(UART2_TX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
-	OMAP4_MUX(UART2_RX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT),
-	OMAP4_MUX(UART2_CTS, OMAP_MUX_MODE3 | OMAP_PIN_INPUT),
-	OMAP4_MUX(UART2_RTS, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
 
 	/* CSI21 */
 	OMAP4_MUX(CSI21_DX0, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
@@ -773,6 +789,11 @@ static struct omap_board_mux board_mux[] __initdata = {
 	
 	/* CAM (OV5650) PWDN */
 	OMAP4_MUX(ABE_MCBSP2_DR, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+	/* CAM (OV5650) RESETB */
+	OMAP4_MUX(CAM_GLOBALRESET, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+
+	/* RTC-8564 IRQ */
+	OMAP4_MUX(ABE_MCBSP1_FSX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_117
 
 	/* FPGA */
 	OMAP4_MUX(ABE_MCBSP2_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_110
@@ -951,7 +972,7 @@ static void __init pcm049_display_init(void)
 }
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
-#define GPIO_BT_EN     173
+#if 0
 static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
 {
 	if (on) {
@@ -963,7 +984,7 @@ static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
 
 	return 0;
 }
-
+#endif
 #ifdef CONFIG_WL12XX_PLATFORM_DATA
 #define GPIO_WIFI_IRQ 109
 static struct wl12xx_platform_data omap_pcm049_wlan_data  __initdata = {
@@ -1007,14 +1028,6 @@ static void __init pcm049_wl12xx_init(void)
 	else
 		omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
 #endif
-
-	/* Currently no support for the BT portion of the TiWi-R2 */
-	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
-	else if (gpio_direction_output(GPIO_BT_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_BT_EN);
 
 #if 0
 	omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
@@ -1060,28 +1073,112 @@ out:
 }
 #endif
 
+/* TODO: handle suspend/resume here.
+ * Upon every suspend, make sure the wilink chip is capable
+ * enough to wake-up the OMAP host.
+ */
+static int plat_wlink_kim_suspend(struct platform_device *pdev,
+                pm_message_t state)
+{
+        return 0;
+}
+
+static int plat_wlink_kim_resume(struct platform_device *pdev)
+{
+        return 0;
+}
+
+static bool uart_req;
+static struct wake_lock st_wk_lock;
+/* Call the uart disable of serial driver */
+static int plat_uart_disable(struct kim_data_s *kdata)
+{
+        int port_id = 0;
+        int err = 0;
+        if (uart_req) {
+                if (!kdata) {
+                        pr_err("%s: NULL kim_data pointer\n", __func__);
+                        return -EINVAL;
+                }
+                err = sscanf(kdata->dev_name, "/dev/ttyO%d", &port_id);
+                if (!err) {
+                        pr_err("%s: Wrong UART name: %s\n", __func__,
+                                kdata->dev_name);
+                        return -EINVAL;
+                }
+                err = omap_serial_ext_uart_disable(port_id);
+                if (!err)
+                        uart_req = false;
+        }
+        wake_unlock(&st_wk_lock);
+        return err;
+}
+
+/* Call the uart enable of serial driver */
+static int plat_uart_enable(struct kim_data_s *kdata)
+{
+        int port_id = 0;
+        int err = 0;
+        if (!uart_req) {
+                if (!kdata) {
+                        pr_err("%s: NULL kim_data pointer\n", __func__);
+                        return -EINVAL;
+                }
+                err = sscanf(kdata->dev_name, "/dev/ttyO%d", &port_id);
+                if (!err) {
+                        pr_err("%s: Wrong UART name: %s\n", __func__,
+                                kdata->dev_name);
+                        return -EINVAL;
+                }
+                err = omap_serial_ext_uart_enable(port_id);
+                if (!err)
+                        uart_req = true;
+        }
+        wake_lock(&st_wk_lock);
+        return err;
+}
+
+struct ti_st_plat_data wilink_pdata = {
+	.nshutdown_gpio = GPIO_BT_EN,
+	.dev_name = "/dev/ttyO1",
+	.flow_cntrl = 1,
+	.baud_rate = 3686400, //115200
+	.suspend = plat_wlink_kim_suspend,
+	.resume = plat_wlink_kim_resume,
+	.chip_enable = plat_uart_enable,
+	.chip_disable = plat_uart_disable,
+};
+
+static struct platform_device wl12xx_device = {
+	.name		= "kim",
+	.id		= -1,
+	.dev.platform_data = &wilink_pdata,
+};
+
+static struct platform_device btwilink_device = {
+	.name = "btwilink",
+	.id = -1,
+};
+
+static inline void __init ksp5012_btwilink_init(void)
+{
+	pr_info("ksp5012: bt init\n");
+
+	if (wilink_pdata.nshutdown_gpio != -1)
+		omap_mux_init_gpio(wilink_pdata.nshutdown_gpio,
+				OMAP_PIN_OUTPUT);
+
+	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
+
+	platform_device_register(&wl12xx_device);
+	platform_device_register(&btwilink_device);
+}
+
 static void __init pcm049_init(void)
 {
 	int status;
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
-
-#ifdef CONFIG_TOUCHSCREEN_FT5X06
-//	if (platform_device_register(&omap_vedt_device))
-//		pr_err("Error registering vedt device\n");
-
-//	omap_mux_init_gpio(KSP5012_FT5x06_GPIO_WAKE, OMAP_PIN_OUTPUT);
-#if 0
-	/* EDT FT5x06 GPIO_WAKE */
-	omap_mux_init_gpio(KSP5012_FT5x06_GPIO_WAKE, OMAP_PIN_OUTPUT);
-	if ((gpio_request(KSP5012_FT5x06_GPIO_WAKE, "EDT_GPIO_WAKE") == 0) &&
-		(gpio_direction_output(KSP5012_FT5x06_GPIO_WAKE, 1) == 0)) {
-		gpio_export(KSP5012_FT5x06_GPIO_WAKE, 0);
-		gpio_set_value(KSP5012_FT5x06_GPIO_WAKE, 1);
-	} else
-		printk(KERN_ERR "could not obtain gpio for EDT_GPIO_WAKE");
-#endif
-#endif
 
 	omap_mux_init_signal("fref_clk4_req", OMAP_MUX_MODE1);
 //	pcm049_audio_mux_init();
@@ -1104,6 +1201,7 @@ static void __init pcm049_init(void)
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 	pcm049_wl12xx_init();
+	ksp5012_btwilink_init();
 #endif
 
 	if (cpu_is_omap446x()) {

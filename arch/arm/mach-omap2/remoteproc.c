@@ -91,8 +91,7 @@ static struct omap_rproc_timers_info dsp_timers[] = {
 static struct omap_rproc_timers_info ipu_timers[] = {
 	{ .id = 3 },
 #ifdef CONFIG_OMAP_REMOTEPROC_WATCHDOG
-	{ .id = 9, .is_wdt = 1 },
-	{ .id = 11, .is_wdt = 1 },
+	{ .id = 2, .is_wdt = 1 },
 #endif
 };
 
