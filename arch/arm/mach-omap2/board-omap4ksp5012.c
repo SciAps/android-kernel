@@ -696,7 +696,7 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
         {
                 I2C_BOARD_INFO("adxl34x", 0x53),
                 .irq = OMAP_GPIO_IRQ(KSP5012_ADXL34X_IRQ),
-                .platform_data = (void *)&adxl34x_info,
+                .platform_data = &adxl34x_info,
         },
 #endif
 // TODO: replace with WM8974
