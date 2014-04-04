@@ -673,8 +673,8 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	},
 };
 
-static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
-};
+//static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
+//};
 
 static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
 	{
@@ -732,7 +732,7 @@ static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
 }
 
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_1_bus_pdata;
-static struct omap_i2c_bus_board_data __initdata pcm049_i2c_2_bus_pdata;
+//static struct omap_i2c_bus_board_data __initdata pcm049_i2c_2_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_3_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
@@ -741,12 +741,12 @@ static int __init pcm049_i2c_init(void)
 	int err;
 
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
-	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
+//	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
 	omap_i2c_hwspinlock_init(4, 3, &pcm049_i2c_4_bus_pdata);
 
 	omap_register_i2c_bus_board_data(1, &pcm049_i2c_1_bus_pdata);
-	omap_register_i2c_bus_board_data(2, &pcm049_i2c_2_bus_pdata);
+//	omap_register_i2c_bus_board_data(2, &pcm049_i2c_2_bus_pdata);
 	omap_register_i2c_bus_board_data(3, &pcm049_i2c_3_bus_pdata);
 	omap_register_i2c_bus_board_data(4, &pcm049_i2c_4_bus_pdata);
 
@@ -783,8 +783,8 @@ static int __init pcm049_i2c_init(void)
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_1_boardinfo));
-	omap_register_i2c_bus(2, 100, pcm049_i2c_2_boardinfo,
-				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
+//	omap_register_i2c_bus(2, 100, pcm049_i2c_2_boardinfo,
+//				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
 	omap_register_i2c_bus(3, 100, pcm049_i2c_3_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_3_boardinfo));
 
@@ -856,7 +856,12 @@ static struct omap_board_mux board_mux[] __initdata = {
 	/* Wake signal */
 	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
 
-	/* GPS */
+	/* GPS ON-OFF */
+	OMAP4_MUX(UNIPRO_TY0, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_172
+	/* GPS RESET */
+	OMAP4_MUX(UNIPRO_TY1, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_174
+	/* GPS SYSTEM-ON */
+	OMAP4_MUX(UNIPRO_RX1, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPI_177
 
 	/* MMC5 CMD */
 	OMAP4_MUX(SDMMC5_CMD, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP),
