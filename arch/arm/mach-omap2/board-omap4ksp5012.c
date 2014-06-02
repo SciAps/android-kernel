@@ -42,12 +42,10 @@
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
 #include <linux/leds-pca9532.h>
-//#include <linux/platform_data/omap-abe-tlv320aic3x.h>
+#include <linux/platform_data/omap-abe-wm8974.h>
 #include <linux/omap4_duty_cycle_governor.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
-
-//#include <sound/tlv320aic3x.h>
 
 #include <mach/hardware.h>
 #include <asm/hardware/gic.h>
@@ -216,7 +214,6 @@ static void init_duty_governor(void)
 static void init_duty_governor(void){}
 #endif /*CONFIG_OMAP4_DUTY_CYCLE*/
 
-#if 0
 static void __init pcm049_audio_mux_init(void)
 {
 	/* abe_mcbsp3_fsx */
@@ -232,7 +229,6 @@ static void __init pcm049_audio_mux_init(void)
 	omap_mux_init_signal("abe_pdm_ul_data", OMAP_MUX_MODE1 |
 			OMAP_PIN_INPUT | OMAP_OFF_EN);
 }
-#endif
 
 static struct regulator_consumer_supply pcm049_vcc_3v3_consumer_supply[] = {
 	REGULATOR_SUPPLY("vdd33a", "smsc911x.0"),
@@ -292,21 +288,19 @@ static struct platform_device pcm049_vcc_1v8_device = {
 	},
 };
 
-#if 0
-static struct omap_abe_tlv320aic3x_data pcm049_abe_audio_data = {
-	.card_name = "PCM049",
-	.mclk_freq = 19200000,
+static struct omap_abe_wm8974_data ksp5012_abe_audio_data = {
+	.card_name = "KSP5012",
+	.mclk_freq = 12288000,
 };
 
 
-static struct platform_device pcm049_abe_audio_device = {
-	.name		= "omap-abe-tlv320aic3x",
+static struct platform_device ksp5012_abe_audio_device = {
+	.name		= "omap-abe-wm8974",
 	.id		= -1,
 	.dev = {
-		.platform_data = &pcm049_abe_audio_data,
+		.platform_data = &ksp5012_abe_audio_data,
         },
 };
-#endif
 
 #if 0
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
@@ -586,7 +580,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_1v8_device,
 //	&omap_vwlan_device,
 //	&omap_vedt_device,
-//	&pcm049_abe_audio_device,
+	&ksp5012_abe_audio_device,
 	&leds_gpio,
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
@@ -703,13 +697,9 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
                 .platform_data = &adxl34x_info,
         },
 #endif
-// TODO: replace with WM8974
-#if 0
 	{
-		I2C_BOARD_INFO("tlv320aic3007", 0x18),	/* Audio */
-		.platform_data = &pcm049_aic33_data,
+		I2C_BOARD_INFO("wm8974", 0x1a), /* Audio */
 	},
-#endif
 };
 
 static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
@@ -1238,7 +1228,7 @@ static void __init pcm049_init(void)
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 
 	omap_mux_init_signal("fref_clk4_req", OMAP_MUX_MODE1);
-//	pcm049_audio_mux_init();
+	pcm049_audio_mux_init();
 	omap_create_board_props();
 
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));

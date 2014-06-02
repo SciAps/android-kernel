@@ -151,6 +151,21 @@ config SND_OMAP_SOC_PCM049
 	  Say Y if you want to add support for SoC audio on Phytec
 	  phyCORE-OMAP44xx.
 
+config SND_OMAP_SOC_KSP5012
+	tristate "SoC Audio support for Phytec KSP-5012"
+	depends on MACH_PCM049
+	depends on SND_OMAP_SOC
+	select SND_OMAP_SOC_ABE
+	select SND_SOC_WM8974
+	select SND_OMAP_SOC_MCBSP
+	select SND_SOC_DMIC
+	select SND_OMAP_SOC_DMIC
+	select SND_OMAP_SOC_ABE_DSP
+	select SND_OMAP_SOC_VXREC
+	help
+	  Say Y if you want to add support for SoC audio on Phytec
+	  KSP-5012.
+
 config SND_OMAP_SOC_OMAP_HDMI
 	tristate "SoC Audio support for Texas Instruments OMAP4/5 HDMI"
 	depends on SND_OMAP_SOC && (OMAP4_DSS_HDMI || OMAP5_DSS_HDMI) && OMAP2_DSS
