@@ -104,6 +104,7 @@
 #define KSP5012_ADXL34X_IRQ1		175
 #define KSP5012_ADXL34X_IRQ2		176
 #define KSP5012_ADXL34X_IRQ		KSP5012_ADXL34X_IRQ1
+#define KSP5012_USBB1_PWR		101
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
@@ -979,8 +980,8 @@ static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
 	.port_mode[0] = OMAP_EHCI_PORT_MODE_PHY,
 	.port_mode[1] = OMAP_USBHS_PORT_MODE_UNUSED,
 	.port_mode[2] = OMAP_USBHS_PORT_MODE_UNUSED,
-	.phy_reset  = false,
-	.reset_gpio_port[0]  = -EINVAL,
+	.phy_reset  = 1,
+	.reset_gpio_port[0]  = KSP5012_USBB1_PWR,
 	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL,
 };
@@ -995,6 +996,8 @@ static void __init pcm049_ehci_ohci_init(void)
 	else
 		printk("can not get clock for ehci/ohci USB\n");
 
+	omap_mux_init_signal("gpmc_ncs4.gpio_101",
+				OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT);
 	usbhs_init(&usbhs_bdata);
 
 	return;
