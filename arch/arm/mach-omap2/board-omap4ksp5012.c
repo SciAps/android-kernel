@@ -42,11 +42,10 @@
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
 #include <linux/leds-pca9532.h>
-//#include <linux/platform_data/omap-abe-tlv320aic3x.h>
+#include <linux/platform_data/omap-abe-wm8974.h>
 #include <linux/omap4_duty_cycle_governor.h>
 #include <linux/pwm_backlight.h>
-
-//#include <sound/tlv320aic3x.h>
+#include <linux/input/adxl34x.h>
 
 #include <mach/hardware.h>
 #include <asm/hardware/gic.h>
@@ -102,6 +101,10 @@
 #define KSP5012_LCD_ENABLE		171
 #define KSP5012_CAM_PWDN		111
 #define KSP5012_RTC_IRQ			117
+#define KSP5012_ADXL34X_IRQ1		175
+#define KSP5012_ADXL34X_IRQ2		176
+#define KSP5012_ADXL34X_IRQ		KSP5012_ADXL34X_IRQ1
+#define KSP5012_USBB1_PWR		101
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
@@ -212,7 +215,6 @@ static void init_duty_governor(void)
 static void init_duty_governor(void){}
 #endif /*CONFIG_OMAP4_DUTY_CYCLE*/
 
-#if 0
 static void __init pcm049_audio_mux_init(void)
 {
 	/* abe_mcbsp3_fsx */
@@ -228,7 +230,6 @@ static void __init pcm049_audio_mux_init(void)
 	omap_mux_init_signal("abe_pdm_ul_data", OMAP_MUX_MODE1 |
 			OMAP_PIN_INPUT | OMAP_OFF_EN);
 }
-#endif
 
 static struct regulator_consumer_supply pcm049_vcc_3v3_consumer_supply[] = {
 	REGULATOR_SUPPLY("vdd33a", "smsc911x.0"),
@@ -288,21 +289,19 @@ static struct platform_device pcm049_vcc_1v8_device = {
 	},
 };
 
-#if 0
-static struct omap_abe_tlv320aic3x_data pcm049_abe_audio_data = {
-	.card_name = "PCM049",
-	.mclk_freq = 19200000,
+static struct omap_abe_wm8974_data ksp5012_abe_audio_data = {
+	.card_name = "KSP5012",
+	.mclk_freq = 12288000,
 };
 
 
-static struct platform_device pcm049_abe_audio_device = {
-	.name		= "omap-abe-tlv320aic3x",
+static struct platform_device ksp5012_abe_audio_device = {
+	.name		= "omap-abe-wm8974",
 	.id		= -1,
 	.dev = {
-		.platform_data = &pcm049_abe_audio_data,
+		.platform_data = &ksp5012_abe_audio_data,
         },
 };
-#endif
 
 #if 0
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
@@ -582,7 +581,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_1v8_device,
 //	&omap_vwlan_device,
 //	&omap_vedt_device,
-//	&pcm049_abe_audio_device,
+	&ksp5012_abe_audio_device,
 	&leds_gpio,
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
@@ -614,6 +613,44 @@ static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
 };
 #endif
 
+#ifdef CONFIG_INPUT_ADXL34X
+static const struct adxl34x_platform_data adxl34x_info = {
+	.x_axis_offset = 0,
+	.y_axis_offset = 0,
+	.z_axis_offset = 0,
+	.tap_threshold = 0x31,
+	.tap_duration = 0x10,
+	.tap_latency = 0x60,
+	.tap_window = 0xF0,
+	.tap_axis_control = ADXL_TAP_X_EN | ADXL_TAP_Y_EN | ADXL_TAP_Z_EN,
+	.act_axis_control = 0xFF,
+	.activity_threshold = 5,
+	.inactivity_threshold = 3,
+	.inactivity_time = 4,
+	.free_fall_threshold = 0x7,
+	.free_fall_time = 0x20,
+	.data_rate = 0x8,
+	.data_range = ADXL_FULL_RES,
+ 
+	.ev_type = EV_ABS,
+	.ev_code_x = ABS_X,		/* EV_REL */
+	.ev_code_y = ABS_Y,		/* EV_REL */
+	.ev_code_z = ABS_Z,		/* EV_REL */
+ 
+	.ev_code_tap = {BTN_0, BTN_1, BTN_2}, /* EV_KEY x,y,z */
+ 
+/*	.ev_code_ff = KEY_F,*/		/* EV_KEY */
+/*	.ev_code_act_inactivity = KEY_A,*/	/* EV_KEY */
+	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
+	.fifo_mode = ADXL_FIFO_STREAM,
+	.orientation_enable = 0,
+	.deadzone_angle = ADXL_DEADZONE_ANGLE_10p8,
+	.divisor_length = ADXL_LP_FILTER_DIVISOR_16,
+	/* EV_KEY {+Z, +Y, +X, -X, -Y, -Z} */
+	.ev_codes_orient_3d = {BTN_Z, BTN_Y, BTN_X, BTN_A, BTN_B, BTN_C},
+};
+#endif
+
 static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("twl6030", 0x48),
@@ -631,8 +668,8 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	},
 };
 
-static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
-};
+//static struct i2c_board_info __initdata pcm049_i2c_2_boardinfo[] = {
+//};
 
 static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
 	{
@@ -654,14 +691,16 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 		.platform_data = &pba_ft5x06_pdata,
 	},
 #endif
-
-// TODO: replace with WM8974
-#if 0
-	{
-		I2C_BOARD_INFO("tlv320aic3007", 0x18),	/* Audio */
-		.platform_data = &pcm049_aic33_data,
-	},
+#ifdef CONFIG_INPUT_ADXL34X_I2C
+        {
+                I2C_BOARD_INFO("adxl34x", 0x53),
+                .irq = OMAP_GPIO_IRQ(KSP5012_ADXL34X_IRQ),
+                .platform_data = &adxl34x_info,
+        },
 #endif
+	{
+		I2C_BOARD_INFO("wm8974", 0x1a), /* Audio */
+	},
 };
 
 static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
@@ -684,7 +723,7 @@ static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
 }
 
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_1_bus_pdata;
-static struct omap_i2c_bus_board_data __initdata pcm049_i2c_2_bus_pdata;
+//static struct omap_i2c_bus_board_data __initdata pcm049_i2c_2_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_3_bus_pdata;
 static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
@@ -693,12 +732,12 @@ static int __init pcm049_i2c_init(void)
 	int err;
 
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
-	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
+//	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
 	omap_i2c_hwspinlock_init(4, 3, &pcm049_i2c_4_bus_pdata);
 
 	omap_register_i2c_bus_board_data(1, &pcm049_i2c_1_bus_pdata);
-	omap_register_i2c_bus_board_data(2, &pcm049_i2c_2_bus_pdata);
+//	omap_register_i2c_bus_board_data(2, &pcm049_i2c_2_bus_pdata);
 	omap_register_i2c_bus_board_data(3, &pcm049_i2c_3_bus_pdata);
 	omap_register_i2c_bus_board_data(4, &pcm049_i2c_4_bus_pdata);
 
@@ -735,8 +774,8 @@ static int __init pcm049_i2c_init(void)
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_1_boardinfo));
-	omap_register_i2c_bus(2, 100, pcm049_i2c_2_boardinfo,
-				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
+//	omap_register_i2c_bus(2, 100, pcm049_i2c_2_boardinfo,
+//				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
 	omap_register_i2c_bus(3, 100, pcm049_i2c_3_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_3_boardinfo));
 
@@ -795,6 +834,10 @@ static struct omap_board_mux board_mux[] __initdata = {
 	/* RTC-8564 IRQ */
 	OMAP4_MUX(ABE_MCBSP1_FSX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_117
 
+	/* ADXL34X IRQ */
+	OMAP4_MUX(KPD_ROW3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPIO_175
+	OMAP4_MUX(KPD_ROW4, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPIO_176
+
 	/* FPGA */
 	OMAP4_MUX(ABE_MCBSP2_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_110
 	OMAP4_MUX(ABE_MCBSP2_DX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_112
@@ -804,7 +847,12 @@ static struct omap_board_mux board_mux[] __initdata = {
 	/* Wake signal */
 	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
 
-	/* GPS */
+	/* GPS ON-OFF */
+	OMAP4_MUX(UNIPRO_TY0, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_172
+	/* GPS RESET */
+	OMAP4_MUX(UNIPRO_TY1, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_174
+	/* GPS SYSTEM-ON */
+	OMAP4_MUX(UNIPRO_RX1, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLDOWN), //GPI_177
 
 	/* MMC5 CMD */
 	OMAP4_MUX(SDMMC5_CMD, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP),
@@ -932,8 +980,8 @@ static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
 	.port_mode[0] = OMAP_EHCI_PORT_MODE_PHY,
 	.port_mode[1] = OMAP_USBHS_PORT_MODE_UNUSED,
 	.port_mode[2] = OMAP_USBHS_PORT_MODE_UNUSED,
-	.phy_reset  = false,
-	.reset_gpio_port[0]  = -EINVAL,
+	.phy_reset  = 1,
+	.reset_gpio_port[0]  = KSP5012_USBB1_PWR,
 	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL,
 };
@@ -948,6 +996,8 @@ static void __init pcm049_ehci_ohci_init(void)
 	else
 		printk("can not get clock for ehci/ohci USB\n");
 
+	omap_mux_init_signal("gpmc_ncs4.gpio_101",
+				OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT);
 	usbhs_init(&usbhs_bdata);
 
 	return;
@@ -1181,7 +1231,7 @@ static void __init pcm049_init(void)
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 
 	omap_mux_init_signal("fref_clk4_req", OMAP_MUX_MODE1);
-//	pcm049_audio_mux_init();
+	pcm049_audio_mux_init();
 	omap_create_board_props();
 
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
