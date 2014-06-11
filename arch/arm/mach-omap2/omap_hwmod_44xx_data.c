@@ -1295,7 +1295,7 @@ static struct omap_mmu_dev_attr omap44xx_dsp_mmu_dev_attr = {
 	 * prevent loss of IOMMU register context during CPU-idle path.
 	 * TODO: Modify value to allow a lower CSWR state.
 	 */
-	.pm_constraint = 10,
+	.pm_constraint = 1000,
 };
 
 static struct omap_hwmod_class omap44xx_dsp_hwmod_class = {
@@ -1439,7 +1439,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss = {
 	.slave		= &omap44xx_dss_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_addrs[] = {
@@ -1543,7 +1543,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_dispc = {
 	.slave		= &omap44xx_dss_dispc_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_dispc_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_dispc_addrs[] = {
@@ -1641,7 +1641,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_dsi1 = {
 	.slave		= &omap44xx_dss_dsi1_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_dsi1_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_dsi1_addrs[] = {
@@ -1718,7 +1718,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_dsi2 = {
 	.slave		= &omap44xx_dss_dsi2_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_dsi2_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_dsi2_addrs[] = {
@@ -1815,7 +1815,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_hdmi = {
 	.slave		= &omap44xx_dss_hdmi_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_hdmi_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_hdmi_addrs[] = {
@@ -1907,7 +1907,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_rfbi = {
 	.slave		= &omap44xx_dss_rfbi_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_rfbi_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_rfbi_addrs[] = {
@@ -1982,7 +1982,7 @@ static struct omap_hwmod_ocp_if omap44xx_l3_main_2__dss_venc = {
 	.slave		= &omap44xx_dss_venc_hwmod,
 	.clk		= "l3_div_ck",
 	.addr		= omap44xx_dss_venc_dma_addrs,
-	.user		= OCP_USER_SDMA,
+	.user		= OCP_USER_SDMA | OCP_USER_MPU,
 };
 
 static struct omap_hwmod_addr_space omap44xx_dss_venc_addrs[] = {
@@ -2436,7 +2436,7 @@ static struct omap_hwmod omap44xx_gpio6_hwmod = {
 	.name		= "gpio6",
 	.class		= &omap44xx_gpio_hwmod_class,
 	.clkdm_name	= "l4_per_clkdm",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_INIT_NO_RESET,
 	.mpu_irqs	= omap44xx_gpio6_irqs,
 	.main_clk	= "gpio6_ick",
 	.prcm = {
@@ -6064,8 +6064,8 @@ static struct omap_hwmod omap44xx_emif2_hwmod = {
 	.clkdm_name	= "l3_emif_clkdm",
 	.prcm		= {
 		.omap4 = {
-			.clkctrl_offs = OMAP4_CM_MEMIF_EMIF_1_CLKCTRL_OFFSET,
-			.context_offs = OMAP4_RM_MEMIF_EMIF_1_CONTEXT_OFFSET,
+			.clkctrl_offs = OMAP4_CM_MEMIF_EMIF_2_CLKCTRL_OFFSET,
+			.context_offs = OMAP4_RM_MEMIF_EMIF_2_CONTEXT_OFFSET,
 			.modulemode   = MODULEMODE_HWCTRL,
 		}
 	},
@@ -6340,7 +6340,7 @@ static __initdata struct omap_hwmod *omap44xx_hwmods[] = {
 	&omap44xx_gpu_hwmod,
 
 	/* hsi class */
-	&omap44xx_hsi_hwmod,
+/*	&omap44xx_hsi_hwmod, */
 
 	/* i2c class */
 	&omap44xx_i2c1_hwmod,

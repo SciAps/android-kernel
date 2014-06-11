@@ -287,6 +287,33 @@ static inline bool omap_wakeupgen_check_interrupts(char *report_string)
 #endif
 
 
+extern u32 omap_get_arm_rev(void);
+
+/*
+ * omap4_get_diagctrl0_errata_flags: Routine to get the flag value of the CP15
+ * diagnostic control register.
+ *
+ * Return the value to be set into the CP15 Diagnostic control 0 reg
+ */
+static inline unsigned int omap4_get_diagctrl0_errata_flags(void)
+{
+	unsigned int ret  = 0;
+	u32 arm_rev = omap_get_arm_rev();
+#ifdef CONFIG_OMAP4_ARM_ERRATA_742230
+	if ((arm_rev >= 0x10) && (arm_rev <= 0x22))
+		ret |= (1 << 4);
+#endif
+#ifdef CONFIG_OMAP4_ARM_ERRATA_751472
+	if (arm_rev < 0x30)	/* ARM revision less that r3p0 */
+		ret |= (1 << 11);
+#endif
+#ifdef CONFIG_OMAP4_ARM_ERRATA_743622
+	if ((arm_rev & 0xF0) == 0x20)	/* All ARM rev r2px impacted */
+		ret |= (1 << 6);
+#endif
+	return ret;
+}
+
 struct omap_sdrc_params;
 extern void omap_sdrc_init(struct omap_sdrc_params *sdrc_cs0,
 				      struct omap_sdrc_params *sdrc_cs1);
@@ -311,4 +338,10 @@ static inline u32 omap_usec_to_32k(u32 usec)
 #define AXI_ERROR (AXI_L2_ERROR | AXI_ASYNC_ERROR)
 
 #endif /* __ASSEMBLER__ */
+
+/*
+ * Secure HAL API entry ids
+ */
+#define HAL_DIAGREG_0                   0x114
+
 #endif /* __ARCH_ARM_MACH_OMAP2PLUS_COMMON_H */
