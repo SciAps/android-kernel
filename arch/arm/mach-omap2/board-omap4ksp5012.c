@@ -46,6 +46,8 @@
 #include <linux/omap4_duty_cycle_governor.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
+#include <linux/platform_data/android_battery.h>
+#include <linux/mfd/libs_pwr.h>
 
 #include <mach/hardware.h>
 #include <asm/hardware/gic.h>
@@ -305,6 +307,35 @@ static struct platform_device ksp5012_abe_audio_device = {
 	.dev = {
 		.platform_data = &ksp5012_abe_audio_data,
         },
+};
+
+/* TODO: ADC implementation for KSP-5012 battery functions.
+ *       Use charger/smart battery implementation when available */
+static void ksp5012_batt_charge_enable(int enable)
+{
+	return;
+}
+
+static struct android_bat_platform_data ksp5012_bat_pdata = {
+	.set_charging_enable = ksp5012_batt_charge_enable,
+	.poll_charge_source = libs_batt_poll_charge_source,
+	.get_capacity = libs_batt_get_capacity,
+	.get_voltage_now = libs_batt_get_voltage_now,
+	.temp_high_threshold = 50, // dummy value
+	.temp_high_recovery = 75, // dummy value
+	.temp_low_recovery = 10, // dummy value
+	.temp_low_threshold = 20, // dummy value
+	.full_charging_time = 600, // dummy value
+	.recharging_time = 300, // dummy value
+	.recharging_voltage = 25, // dummy value
+};
+
+static struct platform_device ksp5012_android_bat_device = {
+	.name = "android-battery",
+	.id = -1,
+	.dev = {
+		.platform_data = &ksp5012_bat_pdata,
+	},
 };
 
 #if 0
@@ -590,6 +621,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
+	&ksp5012_android_bat_device,
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -679,7 +711,10 @@ static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
 		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
-	}
+	},
+	{
+		I2C_BOARD_INFO("libs_pwr", 0x50),
+	},
 };
 
 /*
@@ -1300,8 +1335,8 @@ static void __init pcm049_init(void)
 	pcm049_audio_mux_init();
 	omap_create_board_props();
 
-	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 	pcm049_i2c_init();
+	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
 	omap4_board_serial_init();
 	pcm049_init_smsc911x();
