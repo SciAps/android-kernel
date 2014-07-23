@@ -452,7 +452,6 @@ static struct omap2_hsmmc_info mmc[] = {
 	{}	/* Terminator */
 };
 
-
 #if defined(CONFIG_SMSC911X) || defined(CONFIG_SMSC911X_MODULE)
 static struct omap_smsc911x_platform_data __initdata board_smsc911x_data = {
 	.cs		= KSP5012_ETH_CS,
@@ -650,7 +649,7 @@ static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
 #endif
 
 #ifdef CONFIG_INPUT_ADXL34X
-static const struct adxl34x_platform_data adxl34x_info = {
+static struct adxl34x_platform_data adxl34x_info = {
 	.x_axis_offset = 0,
 	.y_axis_offset = 0,
 	.z_axis_offset = 0,
@@ -768,8 +767,6 @@ static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
 static int __init pcm049_i2c_init(void)
 {
-	int err;
-
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
 //	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
@@ -801,14 +798,7 @@ static int __init pcm049_i2c_init(void)
 		pcm049_twldata.reg_setup_script = omap4460_twl6030_setup;
 
 	/* RTC-8564 IRQ mux */
-//	omap_mux_init_signal("abe_mcbsp1_fsx.gpio_117",
-//				OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
-	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_IN, "rtc8564_irq");
-	if (err < 0)
-		pr_err("Failed to request GPIO %d, error %d\n",
-			KSP5012_RTC_IRQ, err);
-
 
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
@@ -817,11 +807,6 @@ static int __init pcm049_i2c_init(void)
 //				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
 	omap_register_i2c_bus(3, 100, pcm049_i2c_3_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_3_boardinfo));
-
-#ifdef CONFIG_TOUCHSCREEN_FT5X06
-//        pcm049_i2c_4_boardinfo[0].irq =
-//                        gpio_to_irq(KSP5012_FT5x06_GPIO_IRQ),
-#endif
 	omap_register_i2c_bus(4, 100, pcm049_i2c_4_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_4_boardinfo));
 
@@ -1083,9 +1068,6 @@ static struct wl12xx_platform_data omap_pcm049_wlan_data  __initdata = {
 
 static void __init pcm049_wl12xx_init(void)
 {
-	struct platform_device *pdev;
-	struct omap_mmc_platform_data *pdata;
-	
 	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
 				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
@@ -1108,56 +1090,7 @@ static void __init pcm049_wl12xx_init(void)
 	if (platform_device_register(&omap_vwlan_device))
 		pr_err("Error registering wl12xx device\n");
 #endif
-#if 0
-	if (gpio_request_one(GPIO_WL_EN, GPIOF_OUT_INIT_LOW, "wl-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
-	else if (gpio_direction_output(GPIO_WL_EN, 1))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_WL_EN);
-	else
-		omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
-#endif
 
-#if 0
-	omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_WL_EN, "wl-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
-	else if (gpio_direction_output(GPIO_WL_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_WL_EN);
-
-	pdev = mmc[1].pdev;
-	if (!pdev) {
-		pr_err("wl12xx mmc device init failed\n");
-		goto out;
-	}
-
-	pdata = pdev->dev.platform_data;
-	if (!pdata) {
-		pr_err("wl12xx platform data is not set\n");
-		goto out;
-	}
-
-	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
-	else if (gpio_direction_output(GPIO_BT_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_BT_EN);
-#ifdef CONFIG_WL12XX_PLATFORM_DATA
-#define GPIO_WIFI_IRQ  109
-	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
-				OMAP_PIN_OFF_WAKEUPENABLE);
-	pcm049_wlan_data.irq = gpio_to_irq(GPIO_WIFI_IRQ);
-	pcm049_wlan_data.board_ref_clock = 2;
-	wl12xx_set_platform_data(&pcm049_wlan_data);
-        if (platform_device_register(&omap_vwlan_device))
-                pr_err("Error registering wl12xx device\n");
-#endif
-#endif
-
-//	pdata->slots[0].set_power = wl12xx_set_power;
-out:
 	return;
 }
 #endif
