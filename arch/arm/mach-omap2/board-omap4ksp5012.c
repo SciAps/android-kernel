@@ -46,6 +46,8 @@
 #include <linux/omap4_duty_cycle_governor.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
+#include <linux/platform_data/android_battery.h>
+#include <linux/mfd/libs_pwr.h>
 
 #include <mach/hardware.h>
 #include <asm/hardware/gic.h>
@@ -109,6 +111,10 @@
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
 #define GPIO_POWER_BUTTON		139
+
+#define EMIF_SDRAM_CONFIG		0x0008
+#define EBANK_SHIFT			3
+#define EBANK_MASK			(1 << 3)
 
 static struct gpio_keys_button ksp5012_gpio_keys[] = {
 	{
@@ -303,6 +309,35 @@ static struct platform_device ksp5012_abe_audio_device = {
         },
 };
 
+/* TODO: ADC implementation for KSP-5012 battery functions.
+ *       Use charger/smart battery implementation when available */
+static void ksp5012_batt_charge_enable(int enable)
+{
+	return;
+}
+
+static struct android_bat_platform_data ksp5012_bat_pdata = {
+	.set_charging_enable = ksp5012_batt_charge_enable,
+	.poll_charge_source = libs_batt_poll_charge_source,
+	.get_capacity = libs_batt_get_capacity,
+	.get_voltage_now = libs_batt_get_voltage_now,
+	.temp_high_threshold = 50, // dummy value
+	.temp_high_recovery = 75, // dummy value
+	.temp_low_recovery = 10, // dummy value
+	.temp_low_threshold = 20, // dummy value
+	.full_charging_time = 600, // dummy value
+	.recharging_time = 300, // dummy value
+	.recharging_voltage = 25, // dummy value
+};
+
+static struct platform_device ksp5012_android_bat_device = {
+	.name = "android-battery",
+	.id = -1,
+	.dev = {
+		.platform_data = &ksp5012_bat_pdata,
+	},
+};
+
 #if 0
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
 static struct regulator_consumer_supply pcm049_vmmc1_supply = {
@@ -416,7 +451,6 @@ static struct omap2_hsmmc_info mmc[] = {
 #endif
 	{}	/* Terminator */
 };
-
 
 #if defined(CONFIG_SMSC911X) || defined(CONFIG_SMSC911X_MODULE)
 static struct omap_smsc911x_platform_data __initdata board_smsc911x_data = {
@@ -586,6 +620,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
+	&ksp5012_android_bat_device,
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -614,7 +649,7 @@ static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
 #endif
 
 #ifdef CONFIG_INPUT_ADXL34X
-static const struct adxl34x_platform_data adxl34x_info = {
+static struct adxl34x_platform_data adxl34x_info = {
 	.x_axis_offset = 0,
 	.y_axis_offset = 0,
 	.z_axis_offset = 0,
@@ -675,7 +710,10 @@ static struct i2c_board_info __initdata pcm049_i2c_3_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
 		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
-	}
+	},
+	{
+		I2C_BOARD_INFO("libs_pwr", 0x50),
+	},
 };
 
 /*
@@ -729,8 +767,6 @@ static struct omap_i2c_bus_board_data __initdata pcm049_i2c_4_bus_pdata;
 
 static int __init pcm049_i2c_init(void)
 {
-	int err;
-
 	omap_i2c_hwspinlock_init(1, 0, &pcm049_i2c_1_bus_pdata);
 //	omap_i2c_hwspinlock_init(2, 1, &pcm049_i2c_2_bus_pdata);
 	omap_i2c_hwspinlock_init(3, 2, &pcm049_i2c_3_bus_pdata);
@@ -762,14 +798,7 @@ static int __init pcm049_i2c_init(void)
 		pcm049_twldata.reg_setup_script = omap4460_twl6030_setup;
 
 	/* RTC-8564 IRQ mux */
-//	omap_mux_init_signal("abe_mcbsp1_fsx.gpio_117",
-//				OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
-	err = gpio_request_one(KSP5012_RTC_IRQ, GPIOF_IN, "rtc8564_irq");
-	if (err < 0)
-		pr_err("Failed to request GPIO %d, error %d\n",
-			KSP5012_RTC_IRQ, err);
-
 
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
@@ -778,11 +807,6 @@ static int __init pcm049_i2c_init(void)
 //				ARRAY_SIZE(pcm049_i2c_2_boardinfo));
 	omap_register_i2c_bus(3, 100, pcm049_i2c_3_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_3_boardinfo));
-
-#ifdef CONFIG_TOUCHSCREEN_FT5X06
-//        pcm049_i2c_4_boardinfo[0].irq =
-//                        gpio_to_irq(KSP5012_FT5x06_GPIO_IRQ),
-#endif
 	omap_register_i2c_bus(4, 100, pcm049_i2c_4_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_4_boardinfo));
 
@@ -1045,9 +1069,6 @@ static struct wl12xx_platform_data omap_pcm049_wlan_data  __initdata = {
 
 static void __init pcm049_wl12xx_init(void)
 {
-	struct platform_device *pdev;
-	struct omap_mmc_platform_data *pdata;
-	
 	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
 				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
@@ -1070,56 +1091,7 @@ static void __init pcm049_wl12xx_init(void)
 	if (platform_device_register(&omap_vwlan_device))
 		pr_err("Error registering wl12xx device\n");
 #endif
-#if 0
-	if (gpio_request_one(GPIO_WL_EN, GPIOF_OUT_INIT_LOW, "wl-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
-	else if (gpio_direction_output(GPIO_WL_EN, 1))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_WL_EN);
-	else
-		omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
-#endif
 
-#if 0
-	omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_WL_EN, "wl-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
-	else if (gpio_direction_output(GPIO_WL_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_WL_EN);
-
-	pdev = mmc[1].pdev;
-	if (!pdev) {
-		pr_err("wl12xx mmc device init failed\n");
-		goto out;
-	}
-
-	pdata = pdev->dev.platform_data;
-	if (!pdata) {
-		pr_err("wl12xx platform data is not set\n");
-		goto out;
-	}
-
-	omap_mux_init_gpio(GPIO_BT_EN, OMAP_PIN_OUTPUT);
-	if (gpio_request(GPIO_BT_EN, "bt-en") < 0)
-		printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_BT_EN);
-	else if (gpio_direction_output(GPIO_BT_EN, 0))
-		printk(KERN_WARNING "GPIO#%d cannot be configured as "
-				"output\n", GPIO_BT_EN);
-#ifdef CONFIG_WL12XX_PLATFORM_DATA
-#define GPIO_WIFI_IRQ  109
-	omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
-				OMAP_PIN_OFF_WAKEUPENABLE);
-	pcm049_wlan_data.irq = gpio_to_irq(GPIO_WIFI_IRQ);
-	pcm049_wlan_data.board_ref_clock = 2;
-	wl12xx_set_platform_data(&pcm049_wlan_data);
-        if (platform_device_register(&omap_vwlan_device))
-                pr_err("Error registering wl12xx device\n");
-#endif
-#endif
-
-//	pdata->slots[0].set_power = wl12xx_set_power;
-out:
 	return;
 }
 #endif
@@ -1225,9 +1197,71 @@ static inline void __init ksp5012_btwilink_init(void)
 	platform_device_register(&btwilink_device);
 }
 
+/* empty custom_config to not set EMIF_CUSTOM_CONFIG_EXTENDED_TEMP_PART */
+static struct __initdata emif_custom_configs custom_configs;
+
+static void __init emif_setup_device_details(unsigned long base)
+{
+	unsigned long cs1_used;
+	unsigned char *emif;
+
+	emif = ioremap(base, SZ_256);
+
+	cs1_used = (readl(emif + EMIF_SDRAM_CONFIG) & EBANK_MASK)
+		>> EBANK_SHIFT;
+
+	if (memblock_phys_mem_size() > SZ_512M) {
+		if (cs1_used) {
+			omap_emif_set_device_details(1,
+				&lpddr2_nanya_8G_S4_x2_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+			omap_emif_set_device_details(2,
+				&lpddr2_nanya_8G_S4_x2_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+			printk(KERN_INFO "%s: "
+				"registered Nanya LPDDR_S4 1GB RAM with 2 CS\n",
+				__func__);
+		} else {
+			omap_emif_set_device_details(1,
+				&lpddr2_nanya_8G_S4_x2_1CS_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+			omap_emif_set_device_details(2,
+				&lpddr2_nanya_8G_S4_x2_1CS_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+			printk(KERN_INFO "%s: "
+				"registered Nanya LPDDR_S4 1GB RAM with 1 CS\n",
+				__func__);
+		}
+	} else {
+		omap_emif_set_device_details(1, &lpddr2_nanya_4G_S4_x2_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+		omap_emif_set_device_details(2, &lpddr2_nanya_4G_S4_x2_info,
+				lpddr2_elpida_2G_S4_timings,
+				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+				&lpddr2_elpida_S4_min_tck, &custom_configs);
+		printk(KERN_INFO
+			"%s: registered Nanya LPDDR_S4 512MB RAM\n", __func__);
+	}
+}
+
 static void __init pcm049_init(void)
 {
 	int status;
+
+	emif_setup_device_details(0x4C000000);
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 
@@ -1235,8 +1269,8 @@ static void __init pcm049_init(void)
 	pcm049_audio_mux_init();
 	omap_create_board_props();
 
-	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 	pcm049_i2c_init();
+	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
 	omap4_board_serial_init();
 	pcm049_init_smsc911x();

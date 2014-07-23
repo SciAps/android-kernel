@@ -23,6 +23,12 @@ extern struct ddr_device_info lpddr2_elpida_4G_S4_info;
 extern struct lpddr2_timings lpddr2_elpida_4G_S4_timings[6];
 
 extern struct lpddr2_min_tck lpddr2_elpida_S4_min_tck;
+
+extern struct ddr_device_info lpddr2_nanya_4G_S4_x2_info;
+
+extern struct ddr_device_info lpddr2_nanya_8G_S4_x2_info;
+
+extern struct ddr_device_info lpddr2_nanya_8G_S4_x2_1CS_info;
 #endif /* CONFIG_EMIF_OMAP */
 
 int __init omap4_board_serial_init(void);
