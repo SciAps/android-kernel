@@ -11,6 +11,11 @@
 #include <linux/power/libs_battery.h>
 #include <linux/platform_data/android_battery.h>
 
+static enum PROCESS {
+	VOLTAGE,
+	CAPACITY,
+} target;
+
 struct libs_battery_data {
 	struct libs_bat_platform_data	*pdata;
 	struct device			*dev;
@@ -39,42 +44,59 @@ int libs_bat_poll_charge_source(void)
 }
 /* end external battery functions */
 
+static void process_store(struct device *dev,
+			const char *buf, int select)
+{
+	char * temp = NULL;
+        char end;
+        int res, ret, size;
+
+        /* handle integer input */
+        size = strlen(buf);
+        temp = kzalloc(sizeof(char) * size, GFP_KERNEL);
+        if (NULL == temp) {
+                dev_err(dev, "Could not allocate memory for target\n");
+                return;
+        }
+
+        res = sscanf(buf, "%s%c", temp, &end);
+        if (res != 2) {
+                dev_err(dev, "Invalid input. "
+                "Expected [integer]\n");
+		return;
+        }
+
+        /* convert the input string into uint */
+	switch (select)
+	{
+		case VOLTAGE:
+			ret = kstrtouint(temp, 0, &(libs_bat->pdata->voltage));
+			break;
+		case CAPACITY:
+			ret = kstrtouint(temp, 0, &(libs_bat->pdata->capacity));
+			break;
+		default:
+			ret = -1;
+	}
+
+        if (ret < 0) {
+                dev_err(libs_bat->dev, "Input is not a number\n");
+                return;
+        }
+}
+
 static ssize_t libs_show_voltage(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	return scnprintf(buf, PAGE_SIZE,
-		"BATTERY_VOLTAGE = 0x%.4x [%d]\n",
-		libs_bat->pdata->voltage, libs_bat->pdata->voltage);
+		"%d\n", libs_bat->pdata->voltage);
 }
 
 static ssize_t libs_store_voltage(struct device *dev,
                         struct device_attribute *attr,
                         const char *buf, size_t count)
 {
-	char * temp_voltage = NULL;
-	char end;
-	int res, ret, size;
-
-	/* handle integer input */
-	size = strlen(buf);
-	temp_voltage = kzalloc(sizeof(char) * size, GFP_KERNEL);
-	if (NULL == temp_voltage) {
-		dev_err(libs_bat->dev, "Could not allocate memory for voltage var\n");
-		return -ENOMEM;
-	}
-
-	res = sscanf(buf, "%s%c", temp_voltage, &end);
-	if (res != 2) {
-		dev_err(libs_bat->dev, "Invalid input. "
-		"Expected [voltage integer]\n");
-	}
-
-	/* convert the input string into uint */
-	ret = kstrtouint(temp_voltage, 0, &(libs_bat->pdata->voltage));
-	if (ret < 0) {
-		dev_err(libs_bat->dev, "Input is not a number\n");
-		return -EINVAL;
-	}
+	process_store(dev, buf, VOLTAGE);
 
 	return count;
 }
@@ -83,38 +105,14 @@ static ssize_t libs_show_capacity(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	return scnprintf(buf, PAGE_SIZE,
-		"BATTERY CAPACITY = 0x%.4x [%d]\n",
-		libs_bat->pdata->capacity, libs_bat->pdata->capacity);
+		"%d\n", libs_bat->pdata->capacity);
 }
 
 static ssize_t libs_store_capacity(struct device *dev,
                         struct device_attribute *attr,
                         const char *buf, size_t count)
 {
-	char * temp_capacity = NULL;
-	char end;
-	int res, ret, size;
-
-	/* handle integer input */
-	size = strlen(buf);
-	temp_capacity = kzalloc(sizeof(char) * size, GFP_KERNEL);
-	if (NULL == temp_capacity) {
-		dev_err(libs_bat->dev, "Could not allocate memory for capacity var\n");
-		return -ENOMEM;
-	}
-
-	res = sscanf(buf, "%s%c", temp_capacity, &end);
-	if (res != 2) {
-		dev_err(libs_bat->dev, "Invalid input. "
-		"Expected [capacity integer (0-100)]\n");
-	}
-
-	/* convert the input string into uint */
-	ret = kstrtouint(temp_capacity, 0, &(libs_bat->pdata->capacity));
-	if (ret < 0) {
-		dev_err(libs_bat->dev, "Input is not a number\n");
-		return -EINVAL;
-	}
+	process_store(dev, buf, CAPACITY);
 
 	return count;
 }
