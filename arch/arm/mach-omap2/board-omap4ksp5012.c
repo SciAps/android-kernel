@@ -1294,7 +1294,7 @@ static void __init pcm049_init(void)
 {
 	int status;
 
-	emif_setup_device_details(0x4C000000);
+	//emif_setup_device_details(0x4C000000);
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 
