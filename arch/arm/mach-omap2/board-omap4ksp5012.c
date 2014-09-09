@@ -1362,19 +1362,12 @@ static void __init pcm049_reserve(void)
 	omap_reserve();
 }
 
-static void __init ksp5012_init_early(void)
-{
-	omap4430_init_early();
-	if (cpu_is_omap446x())
-		omap_tps6236x_gpio_no_reset_wa(TPS62361_GPIO, -1, 32);
-}
-
 MACHINE_START(PCM049, "pcm049")
 	/* Maintainer: Jan Weitzel - Phytec Messtechnik GmbH */
 	.atag_offset	= 0x100,
 	.reserve	= pcm049_reserve,
 	.map_io		= omap4_map_io,
-	.init_early	= ksp5012_init_early,
+	.init_early	= omap4430_init_early,
 	.init_irq	= gic_init_irq,
 	.handle_irq	= gic_handle_irq,
 	.init_machine	= pcm049_init,
