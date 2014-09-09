@@ -43,7 +43,6 @@ static int ct_irq_num;
 
 #define CONFIG_FT5X0X_MULTITOUCH (1)
 #define MAX_SUPPORT_POINTS (5)
-#define EDT_STYLE (0)
 
 struct ts_event {
 	u16	x1;
@@ -617,9 +616,6 @@ static int ft5x0x_read_data(void)
 	struct ft5x0x_ts_data *tsdata = i2c_get_clientdata(this_client);
 	struct ts_event *event = &tsdata->event;
 	u8 buf[32] = {0};
-#if EDT_STYLE
-	int i, type, x, y, id;
-#endif
 	int ret = -1;
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
@@ -632,35 +628,6 @@ static int ft5x0x_read_data(void)
 		return ret;
 	}
 
-#if EDT_STYLE
-	memset(buf, 0, sizeof(buf));
-	for (i = 0; i < MAX_SUPPORT_POINTS; i++) {
-                u8 *rdbuf = &buf[i * 4 + 5];
-                bool down;
-
-                type = rdbuf[0] >> 6;
-                /* ignore Reserved events */
-                if (type == TOUCH_EVENT_RESERVED)
-                        continue;
-
-                x = ((rdbuf[0] << 8) | rdbuf[1]) & 0x0fff;
-                y = ((rdbuf[2] << 8) | rdbuf[3]) & 0x0fff;
-                id = (rdbuf[2] >> 4) & 0x0f;
-                down = (type != TOUCH_EVENT_UP);
-
-                input_mt_slot(tsdata->input_dev, id);
-                input_mt_report_slot_state(tsdata->input_dev, MT_TOOL_FINGER, down);
-
-                if (!down)
-                        continue;
-
-                input_report_abs(tsdata->input_dev, ABS_MT_POSITION_X, x);
-                input_report_abs(tsdata->input_dev, ABS_MT_POSITION_Y, y);
-        }
-
-        input_mt_report_pointer_emulation(tsdata->input_dev, true);
-        input_sync(tsdata->input_dev);
-#else
 	memset(event, 0, sizeof(struct ts_event));
 	event->touch_point = buf[2] & 0x03;// 0000 0011
 	event->touch_point = buf[2] & 0x07;// 000 0111
@@ -698,7 +665,7 @@ static int ft5x0x_read_data(void)
     }
 #endif
 	event->pressure = 200;
-#endif
+
 //	dev_dbg(&this_client->dev, "%s: 1:%d %d 2:%d %d \n", __func__,
 //			event->x1, event->y1, event->x2, event->y2);
 	//printk("%d (%d, %d), (%d, %d)\n", event->touch_point, event->x1, event->y1, event->x2, event->y2);
@@ -722,9 +689,7 @@ static void ft5x0x_report_value(void)
 {
 	struct ft5x0x_ts_data *tsdata = i2c_get_clientdata(this_client);
 	struct ts_event *event = &tsdata->event;
-	u8 uVersion;
 
-		//printk("==ft5x0x_report_value =\n");
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 	switch(event->touch_point) {
 		case 5:
@@ -821,23 +786,12 @@ function	:
 ***********************************************************************************************/
 static irqreturn_t ft5x0x_ts_interrupt(int irq, void *dev_id)
 {
-	int ret;
-#if EDT_STYLE
-	ret = ft5x0x_read_data();
-	if (ret < 0) {
-		dev_err(&this_client->dev, "Unable to fetch data\n");
-	}
-
-	msleep(1);
-#else
 	struct ft5x0x_ts_data *ft5x0x_ts = dev_id;
-//    	disable_irq(this_client->irq);		
-//	disable_irq(IRQ_EINT(6));
-	//printk("==int=");
+
 	if (!work_pending(&ft5x0x_ts->pen_event_work)) {
 		queue_work(ft5x0x_ts->ts_workqueue, &ft5x0x_ts->pen_event_work);
 	}
-#endif
+
 	return IRQ_HANDLED;
 }
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -908,8 +862,8 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	struct ft5x0x_ts_data *ft5x0x_ts;
 	struct input_dev *input;
 	int err = 0;
-	unsigned char ver = 0;
 	unsigned char uc_reg_value;
+	unsigned int screen_max_x, screen_max_y;
 	ct_irq_num = 0;
 	this_client = client;
 
@@ -926,7 +880,7 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 		goto out;
 	}
 
-//#if 0	
+
 	i2c_set_clientdata(client, ft5x0x_ts);
 
 	INIT_WORK(&ft5x0x_ts->pen_event_work, ft5x0x_ts_pen_irq_work);
@@ -936,7 +890,7 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 		err = -ESRCH;
 		goto exit_create_singlethread;
 	}
-//#endif
+
 	printk(KERN_INFO "ft5x06 waking up\n");
 	/* wake pin */
 	if ((gpio_request(pdata->wake_pin, "ft5x06_gpio_wake") == 0) &&
@@ -955,7 +909,7 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	} else
 		dev_err(&client->dev,
 			"could not obtain ft5x06_ts irq");
-//#if 0
+
 	err = request_irq(client->irq, ft5x0x_ts_interrupt,
 					IRQF_TRIGGER_FALLING, FT5X0X_NAME,
 					ft5x0x_ts);
@@ -965,44 +919,37 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	}
 
 	disable_irq(client->irq);
-//#endif
+
 	ft5x0x_ts->input_dev = input;
 
 	input->name = FT5X0X_NAME;
 	input->id.bustype = BUS_I2C;
 	input->dev.parent = &client->dev;
-#if EDT_STYLE
-	//	input_set_drvdata(input, ft5x0x_ts);
-	//	i2c_set_clientdata(client, ft5x0x_ts);
-	__set_bit(EV_SYN, input->evbit);
-	__set_bit(EV_KEY, input->evbit);
-	__set_bit(EV_ABS, input->evbit);
-	__set_bit(BTN_TOUCH, input->keybit);
-	input_set_abs_params(input, ABS_X, 0, ft5x0x_ts->num_x * 64 - 1, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, ft5x0x_ts->num_y * 64 - 1, 0, 0);
-	input_set_abs_params(input, ABS_MT_POSITION_X,
-				0, ft5x0x_ts->num_x * 64 - 1, 0, 0);
-	input_set_abs_params(input, ABS_MT_POSITION_Y,
-				0, ft5x0x_ts->num_y * 64 - 1, 0, 0);
-	err = input_mt_init_slots(input, MAX_SUPPORT_POINTS);
-	if (err) {
-		dev_err(&client->dev, "Unable to init MT slots.\n");
-		goto exit_irq_request_failed;
+
+	//get some register information
+	uc_reg_value = ft5x0x_read_fw_ver();
+	printk("[FST] FT5x0x Firmware version = 0x%x\n", uc_reg_value);
+#ifdef CONFIG_MACH_PCM049
+#define NHD_50_FW	0x05
+#define NHD_43_FW	0x11
+	if (NHD_43_FW == uc_reg_value) {
+		screen_max_x = 480;
+		screen_max_y = 272;
+	} else if (NHD_50_FW == uc_reg_value) {
+		screen_max_x = 800;
+		screen_max_y = 480;
+	} else {
+		screen_max_x = SCREEN_MAX_X;
+		screen_max_y = SCREEN_MAX_Y;
+		dev_err(&client->dev, "ksp5012: Unrecognized firmware. "
+				"Reverting to defaults: x=%d y=%d.\n",
+				screen_max_x, screen_max_y);
 	}
+	
 #else
-#if 0
-	err = request_threaded_irq(client->irq, NULL, ft5x0x_ts_interrupt,
-					IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
-					FT5X0X_NAME, ft5x0x_ts);
-
-	if (err < 0) {
-		dev_err(&client->dev, "ft5x0x_probe: request irq failed\n");
-		goto exit_irq_request_failed;
-	}
-
-	disable_irq(client->irq);
+	screen_max_x = SCREEN_MAX_X;
+	screen_max_y = SCREEN_MAX_Y;
 #endif
-	printk(KERN_INFO "EDT_STYLE is not set\n");
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 	set_bit(ABS_MT_TOUCH_MAJOR, input->absbit);
@@ -1011,9 +958,9 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	set_bit(ABS_MT_WIDTH_MAJOR, input->absbit);
 
 	input_set_abs_params(input,
-			     ABS_MT_POSITION_X, 0, SCREEN_MAX_X, 0, 0);
+			     ABS_MT_POSITION_X, 0, screen_max_x, 0, 0);
 	input_set_abs_params(input,
-			     ABS_MT_POSITION_Y, 0, SCREEN_MAX_Y, 0, 0);
+			     ABS_MT_POSITION_Y, 0, screen_max_y, 0, 0);
 	input_set_abs_params(input,
 			     ABS_MT_TOUCH_MAJOR, 0, PRESS_MAX, 0, 0);
 	input_set_abs_params(input,
@@ -1024,8 +971,8 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	set_bit(ABS_PRESSURE, input->absbit);
 	set_bit(BTN_TOUCH, input->keybit);
 
-	input_set_abs_params(input, ABS_X, 0, SCREEN_MAX_X, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, SCREEN_MAX_Y, 0, 0);
+	input_set_abs_params(input, ABS_X, 0, screen_max_x, 0, 0);
+	input_set_abs_params(input, ABS_Y, 0, screen_max_y, 0, 0);
 	input_set_abs_params(input, ABS_PRESSURE, 0, PRESS_MAX, 0 , 0);
 #endif
 
@@ -1037,92 +984,10 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	set_bit(EV_SYN, input->evbit);
 	set_bit(EV_ABS, input->evbit);
 	set_bit(EV_KEY, input->evbit);
-#if 0
-	err = input_mt_init_slots(input, MAX_SUPPORT_POINTS);
-	if (err) {
-		dev_err(&client->dev, "Unable to init MT slots.\n");
-		goto exit_irq_request_failed;
-	}
-#endif
-#endif
 
 	err = input_register_device(input);
 	if (err)
 		goto exit_input_register_device_failed;
-#if 0
-	INIT_WORK(&ft5x0x_ts->pen_event_work, ft5x0x_ts_pen_irq_work);
-
-	ft5x0x_ts->ts_workqueue = create_singlethread_workqueue(dev_name(&client->dev));//dev_name(&client->dev));
-	if (!ft5x0x_ts->ts_workqueue) {
-		err = -ESRCH;
-		goto exit_create_singlethread;
-	}
-
-	err = request_irq(ct_irq_num, ft5x0x_ts_interrupt, IRQF_TRIGGER_FALLING, FT5X0X_NAME, ft5x0x_ts);//IRQ_EINT(6)
-	if (err < 0) {
-		dev_err(&client->dev, "ft5x0x_probe: request irq failed\n");
-		goto exit_irq_request_failed;
-	}
-
-	disable_irq(client->irq);
-
-	input_dev = input_allocate_device();
-	if (!input_dev) {
-		err = -ENOMEM;
-		dev_err(&client->dev, "failed to allocate input device\n");
-		goto exit_input_dev_alloc_failed;
-	}
-	
-	ft5x0x_ts->input_dev = input_dev;
-
-#ifdef CONFIG_FT5X0X_MULTITOUCH
-	set_bit(ABS_MT_TOUCH_MAJOR, input_dev->absbit);
-	set_bit(ABS_MT_POSITION_X, input_dev->absbit);
-	set_bit(ABS_MT_POSITION_Y, input_dev->absbit);
-	set_bit(ABS_MT_WIDTH_MAJOR, input_dev->absbit);
-
-	input_set_abs_params(input_dev,
-			     ABS_MT_POSITION_X, 0, SCREEN_MAX_X, 0, 0);
-	input_set_abs_params(input_dev,
-			     ABS_MT_POSITION_Y, 0, SCREEN_MAX_Y, 0, 0);
-	input_set_abs_params(input_dev,
-			     ABS_MT_TOUCH_MAJOR, 0, PRESS_MAX, 0, 0);
-	input_set_abs_params(input_dev,
-			     ABS_MT_WIDTH_MAJOR, 0, 200, 0, 0);
-#else
-	set_bit(ABS_X, input_dev->absbit);
-	set_bit(ABS_Y, input_dev->absbit);
-	set_bit(ABS_PRESSURE, input_dev->absbit);
-	set_bit(BTN_TOUCH, input_dev->keybit);
-
-	input_set_abs_params(input_dev, ABS_X, 0, SCREEN_MAX_X, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, SCREEN_MAX_Y, 0, 0);
-	input_set_abs_params(input_dev, ABS_PRESSURE, 0, PRESS_MAX, 0 , 0);
-#endif
-
-	//Define ABS_X&Y for tslib as it expects that
-	set_bit(ABS_X, input_dev->absbit);
-	set_bit(ABS_Y, input_dev->absbit);
-	set_bit(BTN_TOUCH, input_dev->keybit);
-
-	set_bit(EV_SYN, input_dev->evbit);
-	set_bit(EV_ABS, input_dev->evbit);
-	set_bit(EV_KEY, input_dev->evbit);
-//	 err = input_mt_init_slots(input_dev, 4);//4 is max support points
-//	 if (err) {
-//			 dev_err(&client->dev, "Unable to init MT slots.\n");
-//			 printk("Unable to init MT Slots.\n");
-//			 //goto err_free_mem;
-//	 }
-
-	err = input_register_device(input_dev);
-	if (err) {
-		dev_err(&client->dev,
-			"ft5x0x_ts_probe: failed to register input device: %s\n",
-		dev_name(&client->dev));
-		goto exit_input_register_device_failed;
-	}
-#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	printk("==register_early_suspend =\n");
@@ -1131,31 +996,7 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	ft5x0x_ts->early_suspend.resume	= ft5x0x_ts_resume;
 	register_early_suspend(&ft5x0x_ts->early_suspend);
 #endif
-
-    msleep(50);
-    //get some register information
-    uc_reg_value = ft5x0x_read_fw_ver();
-    printk("[FST] FT55x0x Firmware version = 0x%x\n", uc_reg_value);
-    /*uc_reg_value = ft5x0x_read_reg(FT5X0X_REG_FT5201ID, &ver);
-    printk("[FST] FT55x0x FiT5201ID = 0x%x\n", uc_reg_value);
-    uc_reg_value = ft5x0x_read_reg(FT5X0X_REG_ERR, &ver);
-    printk("[FST] FT55x0x ERR = 0x%x\n", uc_reg_value);*/
-
-
-//    fts_ctpm_fw_upgrade_with_i_file();
-
-//wake the CTPM
-//	__gpio_as_output(GPIO_FT5X0X_WAKE);		
-//	__gpio_clear_pin(GPIO_FT5X0X_WAKE);		//set wake = 0,base on system
-//	 msleep(100);
-//	__gpio_set_pin(GPIO_FT5X0X_WAKE);			//set wake = 1,base on system
-//	msleep(100);
-//	ft5x0x_set_reg(0x88, 0x05); //5, 6,7,8
-//	ft5x0x_set_reg(0x80, 30);
-//	msleep(50);
-//    enable_irq(IRQ_EINT(6));
-
-//    	enable_irq(ct_irq_num);
+	msleep(50);
 
 	device_init_wakeup(&client->dev, 1);
 	enable_irq(client->irq);

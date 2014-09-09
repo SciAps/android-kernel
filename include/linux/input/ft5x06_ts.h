@@ -1,9 +1,9 @@
 #ifndef __LINUX_FT5X0X_TS_H__
 #define __LINUX_FT5X0X_TS_H__
 
-#define SCREEN_MAX_X    480
-#define SCREEN_MAX_Y    272
-#define PRESS_MAX       255
+#define SCREEN_MAX_X	800
+#define SCREEN_MAX_Y	480
+#define PRESS_MAX	255
 
 #define FT5X0X_NAME	"ft5x06_ts"
 
