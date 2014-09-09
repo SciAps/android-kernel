@@ -174,8 +174,6 @@ enum {
 #define I2C_OMAP_ERRATA_I207		(1 << 0)
 #define I2C_OMAP_ERRATA_I462		(1 << 1)
 
-#define OMAP_I2C_INTERRUPTS_MASK	0x6FFF
-
 struct omap_i2c_dev {
 	struct device		*dev;
 	void __iomem		*base;		/* virtual */
@@ -1240,11 +1238,7 @@ static int omap_i2c_runtime_suspend(struct device *dev)
 
 	_dev->iestate = omap_i2c_read_reg(_dev, OMAP_I2C_IE_REG);
 
-	if (_dev->dtrev == OMAP_I2C_IP_VERSION_1)
-		omap_i2c_write_reg(_dev, OMAP_I2C_IE_REG, 0);
-	else
-		omap_i2c_write_reg(_dev, OMAP_I2C_IP_V2_IRQENABLE_CLR,
-				   OMAP_I2C_INTERRUPTS_MASK);
+	omap_i2c_write_reg(_dev, OMAP_I2C_IE_REG, 0);
 
 	if (_dev->rev < OMAP_I2C_OMAP1_REV_2) {
 		iv = omap_i2c_read_reg(_dev, OMAP_I2C_IV_REG); /* Read clears */
