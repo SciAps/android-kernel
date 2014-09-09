@@ -549,12 +549,35 @@ config OMAP4_ARM_ERRATA_751472
 	  enabled."
 
 config OMAP4_ARM_ERRATA_743622
-	bool "Enabled the workaround for ARM errata 743622 on GP devices"
+	bool "Enables the workaround for ARM errata 743622 on GP devices"
 	help
 	  Enables the workaround for ARM errata 743622 on OMAP4.
 	  This involves setting bit 6 of the CP15 diagnostic control register.
 	  This is handled for HS devices in the PPA code and does not need to be
 	  enabled."
+
+choice
+	prompt "KSP5012 External I2C Bus"
+	default KSP5012_EXT_I2C1
+
+config KSP5012_EXT_I2C1
+	bool "Use I2C1 for RTC and external devices"
+	depends on MACH_PCM049
+	help
+	  The .A3 carrier board has jumpers to select the I2C bus for
+	  communicating with the RTC and assorted external devices.
+
+	  Select this if J6 and J7 are in the 2+3 position.
+
+config KSP5012_EXT_I2C4
+	bool "Use I2C4 for RTC and external devices"
+	depends on MACH_PCM049
+	help
+	  The .A3 carrier board has jumpers to select the I2C bus for
+	  communicating with the RTC and assorted external devices.
+
+	  Select this if J6 and J7 are in the 1+2 position.
+endchoice
 
 endmenu
 
