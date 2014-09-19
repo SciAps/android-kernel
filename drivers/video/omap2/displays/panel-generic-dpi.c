@@ -480,6 +480,29 @@ static struct panel_config generic_dpi_panels[] = {
 					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
 		.name			= "nhd50800480tf-atxl",
 	},
+
+	/* Newhaven NHD-4.3-480x272EF-ATXL#-CTP */
+	{
+		{
+			.x_res		= 480,
+			.y_res		= 272,
+
+			.pixel_clock	= 9000,
+			.hsw		= 41,
+			.hbp		= 2,
+			.hfp		= 2,
+
+			.vsw		= 2,
+			.vfp		= 10,
+			.vbp		= 2,
+		},
+		.acbi			= 0x0,
+		.acb			= 0x28,
+		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+		.name			= "nhd43480272ef-atxl",
+	},
+
 };
 
 struct panel_drv_data {
