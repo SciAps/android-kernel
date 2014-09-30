@@ -42,7 +42,7 @@ typedef struct
 } libs_regs;
 
 static libs_cmds libs_known_cmds[] = {
-	{ "reset_micro",	{0xA0, 0xA7, 0x7A} },
+	{ "reset_micro",	{0xA0, 0x7A, 0xA7} },
 	{ "enter_bl",		{0xA1, 0x3C, 0xC3} },
 	{ "unlock_nvram",	{0xA2, 0x55, 0xAA} },
 };
@@ -534,7 +534,6 @@ static DEVICE_ATTR(min_voltage, 0666, libs_show_bvar_min, libs_store_bvar_min);
 
 static int libs_setup_sysfs(struct i2c_client *client)
 {
-	kobject_create_and_add
 	device_create_file(&client->dev, &dev_attr_read_reg);
 	device_create_file(&client->dev, &dev_attr_write_reg);
 	device_create_file(&client->dev, &dev_attr_cmd);

@@ -739,7 +739,7 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	},
 #ifdef CONFIG_MFD_LIBS_PWR
 	{
-		I2C_BOARD_INFO("libs_pwr", 0x50),
+		I2C_BOARD_INFO("libs_pwr", 0x59),
 	},
 #endif
 #endif
@@ -775,7 +775,7 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 	},
 #ifdef CONFIG_MFD_LIBS_PWR
 	{
-		I2C_BOARD_INFO("libs_pwr", 0x50),
+		I2C_BOARD_INFO("libs_pwr", 0x59),
 	},
 #endif
 #endif
