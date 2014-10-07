@@ -732,7 +732,7 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("tmp102_temp_sensor", 0x4B),
 		.platform_data = &tmp102_omap_info,
 	},
-#ifdef CONFIG_KSP5012_I2C1
+#ifdef CONFIG_KSP5012_EXT_I2C1
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
 		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
@@ -768,7 +768,7 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("wm8974", 0x1a), /* Audio */
 	},
-#ifdef CONFIG_KSP5012_I2C4
+#ifdef CONFIG_KSP5012_EXT_I2C4
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
 		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),

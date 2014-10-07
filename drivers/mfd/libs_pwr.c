@@ -16,7 +16,6 @@ static struct i2c_client *libs_client;
 
 struct libs_pwr_data {
 	struct	i2c_client	*client;
-	const struct attribute_group **groups;
 
 	/* battery profile values */
 	unsigned int		batt_max_voltage;
@@ -563,6 +562,7 @@ static int libs_pwr_probe(struct i2c_client *client,
 
 	libs_pwr = kzalloc(sizeof(struct libs_pwr_data), GFP_KERNEL);
 	if (!libs_pwr) {
+		dev_err(&client->dev, "cannot allocate memory\n");
 		return -ENOMEM;
 	}
 
@@ -573,6 +573,7 @@ static int libs_pwr_probe(struct i2c_client *client,
 	libs_pwr->nvram_unlocked = 0;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+		dev_err(&client->dev, "i2c not supported\n");
 		return -EPFNOSUPPORT;
 	}
 
