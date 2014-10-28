@@ -251,6 +251,40 @@ __v7_setup:
 1:
 #endif
 	b	4f
+#if (defined(CONFIG_OMAP4_ARM_ERRATA_742230) || \
+	defined(CONFIG_OMAP4_ARM_ERRATA_751472) || \
+	defined(CONFIG_OMAP4_ARM_ERRATA_743622))
+	stmia	r12, {r0-r4}
+	ldr	r0, =0x4a0022c4                 @ Ctrl module status reg addr
+	ldr	r1, [r0]
+	and	r1, r1, #0x700                  @ Bits 10:8 = Processor type
+	cmp	r1, #0x300                      @ GP devices have this to be 3
+	bne	zero_diagctrl0
+	mrc	p15, 0, r0, c15, c0, 1          @ read diagnostic register
+#ifdef CONFIG_OMAP4_ARM_ERRATA_742230
+	cmp	r6, #0x22
+	orrle	r0, r0, #1 << 4                 @ set bit #4
+#endif
+#ifdef CONFIG_OMAP4_ARM_ERRATA_751472
+	cmp	r6, #0x30                       @ present prior to r3p0
+	orrlt	r0, r0, #1 << 11                @ set bit #11
+#endif
+#ifdef CONFIG_OMAP4_ARM_ERRATA_743622
+	cmp     r6, #0x30
+	orrlt   r0, r0, #1 << 6                 @ set bit #6
+#endif
+	cmp	r0, #0
+	beq	zero_diagctrl0
+	mov	r10, r12
+	mov	r12, #0x114                     @ prep for SMC call to 0x114
+	dsb
+	smc	#0
+	dsb
+	mov	r12, r10
+
+	zero_diagctrl0:
+	ldmia	r12, {r0-r4}
+#endif
 
 	/* Cortex-A15 initialisations */
 3:	ldr	r10, =0x00000c0F		@ Cortex-A15 primary part number

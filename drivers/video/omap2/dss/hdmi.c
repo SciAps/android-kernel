@@ -382,7 +382,7 @@ static void hdmi_compute_pll(struct omap_dss_device *dssdev, int phy,
 static void hdmi_load_hdcp_keys(struct omap_dss_device *dssdev)
 {
 	DSSDBG("hdmi_load_hdcp_keys\n");
-	if (hdmi.hdmi_power_on_cb()) {
+	if (hdmi.hdmi_power_on_cb && hdmi.hdmi_power_on_cb()) {
 		if (cpu_is_omap44xx()) {
 			/* load the keys and reset the wrapper to populate
 			 * the AKSV registers*/

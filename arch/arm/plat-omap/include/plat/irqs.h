@@ -447,7 +447,14 @@
 #define OMAP_PRCM_IRQ_END	OMAP_GPMC_IRQ_END
 #endif
 
-#define NR_IRQS			(OMAP_PRCM_IRQ_END+64)
+#ifdef CONFIG_GPIO_STMPE
+#define STMPE_MAX_GPIOS		24
+#else
+#define STMPE_MAX_GPIOS		0
+#endif
+#define STMPE_IRQ_BASE		(OMAP_PRCM_IRQ_END+64)
+
+#define NR_IRQS			(STMPE_IRQ_BASE + STMPE_MAX_GPIOS)
 
 #define OMAP_IRQ_BIT(irq)	(1 << ((irq) % 32))
 

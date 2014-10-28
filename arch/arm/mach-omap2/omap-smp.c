@@ -58,6 +58,7 @@ static inline unsigned int get_a15_core_count(void)
 
 void __cpuinit platform_secondary_init(unsigned int cpu)
 {
+	u32 diag0_errata_flags = 0;
 	/*
 	 * Configure ACTRL and enable NS SMP bit access on CPU1 on HS device.
 	 * OMAP44XX EMU/HS devices - CPU0 SMP bit access is enabled in PPA
@@ -66,9 +67,18 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 	 * OMAP443X GP devices- SMP bit isn't accessible.
 	 * OMAP446X GP devices - SMP bit access is enabled on both CPUs.
 	 */
-	if (cpu_is_omap443x() && (omap_type() != OMAP2_DEVICE_TYPE_GP))
-		omap_secure_dispatcher(OMAP4_PPA_CPU_ACTRL_SMP_INDEX,
+	if (cpu_is_omap446x() || cpu_is_omap443x()) {
+		if (omap_type() != OMAP2_DEVICE_TYPE_GP)
+			omap_secure_dispatcher(OMAP4_PPA_CPU_ACTRL_SMP_INDEX,
 							4, 0, 0, 0, 0, 0);
+		else {
+			diag0_errata_flags =
+				omap4_get_diagctrl0_errata_flags();
+			if (diag0_errata_flags)
+				omap_smc1(HAL_DIAGREG_0, diag0_errata_flags);
+		}
+
+	}
 
 	/*
 	 * If any interrupts are already enabled for the primary
@@ -157,6 +167,8 @@ int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 		clkdm_wakeup(cpu1_clkdm);
 		clkdm_allow_idle(cpu1_clkdm);
 		pwrdm_set_next_pwrst(cpu1_pwrdm, PWRDM_POWER_ON);
+		if (cpu_is_omap54xx())
+			pwrdm_disable_force_off(cpu1_pwrdm);
 
 		if (IS_PM44XX_ERRATUM(PM_OMAP4_ROM_SMP_BOOT_ERRATUM_xxx)) {
 			while (gic_dist_disabled()) {

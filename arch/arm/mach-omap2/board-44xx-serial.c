@@ -19,6 +19,16 @@
 /*
  *  UART: Tablet platform data
  */
+static struct omap_device_pad uart1_pads[] __initdata = {
+	{
+		.name	= "i2c2_sda.uart1_tx",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE1,
+	},
+	{
+		.name	= "i2c2_scl.uart1_rx",
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE1,
+	},
+};
 
 static struct omap_device_pad uart2_pads[] __initdata = {
 	{
@@ -78,6 +88,12 @@ static struct omap_device_pad uart4_pads[] __initdata = {
 	},
 };
 
+static struct omap_board_data uart1_board_data __initdata = {
+	.id = 0,
+	.pads = uart1_pads,
+	.pads_cnt = ARRAY_SIZE(uart1_pads),
+};
+
 static struct omap_board_data uart2_board_data __initdata = {
 	.id = 1,
 	.pads = uart2_pads,
@@ -94,6 +110,14 @@ static struct omap_board_data uart4_board_data __initdata = {
 	.id = 3,
 	.pads = uart4_pads,
 	.pads_cnt = ARRAY_SIZE(uart4_pads),
+};
+
+static struct omap_uart_port_info uart1_info __initdata = {
+	.dma_enabled = 0,
+	.dma_rx_buf_size = 4096,
+	.dma_rx_poll_rate = 1,
+	.dma_rx_timeout = 3 * HZ,
+	.autosuspend_timeout = DEFAULT_UART_AUTOSUSPEND_DELAY,
 };
 
 static struct omap_uart_port_info uart2_info __initdata = {
@@ -126,6 +150,7 @@ static struct omap_uart_port_info uart4_info __initdata = {
 
 void __init omap4_board_serial_init(void)
 {
+	omap_serial_init_port(&uart1_board_data, &uart1_info);
 	omap_serial_init_port(&uart2_board_data, &uart2_info);
 	omap_serial_init_port(&uart3_board_data, &uart3_info);
 	omap_serial_init_port(&uart4_board_data, &uart4_info);

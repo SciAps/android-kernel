@@ -393,6 +393,16 @@ config MACH_OMAP4_PANDA
 	select REGULATOR_FIXED_VOLTAGE if REGULATOR
 	select OMAP_TPS6236X
 
+config MACH_PCM049
+	bool "Phytec phyCORE-OMAP44xx (pcm049)"
+	default y
+	depends on ARCH_OMAP4
+	select OMAP_PACKAGE_CBL
+	select OMAP_PACKAGE_CBS
+	select REGULATOR_FIXED_VOLTAGE
+	select OMAP_TPS6236X
+	select WIRELESS_EXT if CFG80211
+
 config MACH_OMAP5_SEVM
 	bool "OMAP5 EVM board"
 	default y
@@ -520,6 +530,31 @@ config OMAP_REBOOT_REASON
 	  Let bootloader to know when their platform do a reboot. The boot
 	  reason is written to SAR memory that is retained across reboots.
 	  Then bootloader cat read it. Bootloader should be updated accordingly.
+
+
+config OMAP4_ARM_ERRATA_742230
+	bool "Enables the workaround for ARM errata 742230 on GP devices"
+	help
+	  Enables the ARM errata 742230 on OMAP443x and OMAP446x (GP) devices.
+	  This involves setting bit 4 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
+
+config OMAP4_ARM_ERRATA_751472
+	bool "Enables the workaround for ARM errata 751472 on GP devices"
+	help
+	  Enables the ARM errata 751472 on OMAP443x and OMAP446x (GP) devices.
+	  This involves setting bit 11 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
+
+config OMAP4_ARM_ERRATA_743622
+	bool "Enabled the workaround for ARM errata 743622 on GP devices"
+	help
+	  Enables the workaround for ARM errata 743622 on OMAP4.
+	  This involves setting bit 6 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
 
 endmenu
 

@@ -155,11 +155,14 @@ struct ddr_device_info lpddr2_elpida_2G_S4_x2_info = {
 
 /*
  * AC timings for Elpida LPDDR2-s4 2Gb memory device
+ *                Micron LPDDR2-s4 4/8Gb memory device
+ *                Nanya  LPDDR2-s4 4/8Gb memory device
  */
 struct lpddr2_timings lpddr2_elpida_2G_S4_timings[] = {
 	/* Speed bin 800(400 MHz) */
 	[0] = {
 		.max_freq	= 400000000,
+
 		.min_freq	= 10000000,
 		.tRPab		= 21000,
 		.tRCD		= 18000,
@@ -382,5 +385,32 @@ struct ddr_device_info lpddr2_elpida_4G_S4_info = {
 	.cs1_used	= false,
 	.cal_resistors_per_cs = false,
 	.manufacturer	= "Elpida"
+};
+
+struct ddr_device_info lpddr2_nanya_4G_S4_x2_info = {
+	.type           = DDR_TYPE_LPDDR2_S4,
+	.density        = DDR_DENSITY_4Gb,
+	.io_width       = DDR_IO_WIDTH_32,
+	.cs1_used       = false,
+	.cal_resistors_per_cs = false,
+	.manufacturer   = "Nanya"
+};
+
+struct ddr_device_info lpddr2_nanya_8G_S4_x2_info = {
+	.type           = DDR_TYPE_LPDDR2_S4,
+	.density        = DDR_DENSITY_8Gb,
+	.io_width       = DDR_IO_WIDTH_32,
+	.cs1_used       = true,
+	.cal_resistors_per_cs = false,
+	.manufacturer   = "Nanya"
+};
+
+struct ddr_device_info lpddr2_nanya_8G_S4_x2_1CS_info = {
+	.type           = DDR_TYPE_LPDDR2_S4,
+	.density        = DDR_DENSITY_8Gb,
+	.io_width       = DDR_IO_WIDTH_32,
+	.cs1_used       = false,
+	.cal_resistors_per_cs = false,
+	.manufacturer   = "Nanya"
 };
 #endif

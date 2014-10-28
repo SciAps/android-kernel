@@ -27,6 +27,7 @@
 
 #include <linux/types.h>
 #include <linux/input/matrix_keypad.h>
+#include <linux/usb/phy_companion.h>
 
 /*
  * Using the twl4030 core we address registers using a pair
@@ -734,6 +735,9 @@ struct twl4030_usb_data {
 	int		(*phy_set_clock)(struct device *dev, int on);
 	/* suspend/resume of phy */
 	int		(*phy_suspend)(struct device *dev, int suspend);
+	/* vbus platform controlled */
+	int		(*otg_set_vbus)(struct phy_companion *comparator,
+					bool enabled);
 };
 
 struct twl4030_ins {

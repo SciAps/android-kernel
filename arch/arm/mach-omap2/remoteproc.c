@@ -69,6 +69,16 @@
 
 #define OMAP4_RPROC_CMA_BASE_IPU	(0x99000000)
 #define OMAP4_RPROC_CMA_BASE_DSP	(0x98800000)
+/*
+ * The above is hardcoded for 1G boards.  The following numbers are
+ * suitable for 512M boards.  They place CMA memory below ION memory
+ * (see arch/arm/mach-omap2/omap4_ion.c).  However, experience has shown
+ * that we do not have suffient memory left on a 512M board to run Android
+ * when the IPU is enabled and the associated CONFIG_OMAP4_IPU_CMA_SIZE is
+ * reserved.
+ *	#define OMAP4_RPROC_CMA_BASE_IPU	(0x8b000000)
+ *	#define OMAP4_RPROC_CMA_BASE_DSP	(0x8b800000)
+ */
 
 
 #ifdef CONFIG_OMAP_REMOTEPROC_DSP
@@ -84,8 +94,7 @@ static struct omap_rproc_timers_info dsp_timers[] = {
 static struct omap_rproc_timers_info ipu_timers[] = {
 	{ .id = 3 },
 #ifdef CONFIG_OMAP_REMOTEPROC_WATCHDOG
-	{ .id = 9, .is_wdt = 1 },
-	{ .id = 11, .is_wdt = 1 },
+	{ .id = 2, .is_wdt = 1 },
 #endif
 	{ .id = 4 },
 };

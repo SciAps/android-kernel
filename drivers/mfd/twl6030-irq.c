@@ -286,7 +286,7 @@ int twl6030_mmc_card_detect_config(void)
 		return ret;
 	}
 	reg_val &= ~VMMC_AUTO_OFF;
-	reg_val |= SW_FC;
+	reg_val = SW_FC;
 	ret = twl_i2c_write_u8(TWL6030_MODULE_ID0, reg_val, TWL6030_MMCCTRL);
 	if (ret < 0) {
 		pr_err("twl6030: Failed to write MMCCTRL, error %d\n", ret);
@@ -341,8 +341,13 @@ int twl6030_mmc_card_detect(struct device *dev, int slot)
 	 */
 	ret = twl_i2c_read_u8(TWL6030_MODULE_ID0, &read_reg,
 						TWL6030_MMCCTRL);
+#define KSP5012 1
+#ifndef KSP5012
 	if (ret >= 0)
 		ret = read_reg & STS_MMC;
+#else
+	ret = 1;
+#endif
 	return ret;
 }
 EXPORT_SYMBOL(twl6030_mmc_card_detect);

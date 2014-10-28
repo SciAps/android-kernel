@@ -60,7 +60,14 @@
 #define OP_MODE(x)			((x & 0x7) << 1)
 
 #define STMPE_TS_NAME			"stmpe-ts"
-#define XY_MASK				0xfff
+#define XY_MIN				0xb0
+#define XY_MAX				0xf50
+
+int invertx = 0;
+int inverty = 0;
+
+module_param_named(invertx, invertx, int, 0600);
+module_param_named(inverty, inverty, int, 0600);
 
 struct stmpe_touch {
 	struct stmpe *stmpe;
@@ -118,14 +125,16 @@ static void stmpe_work(struct work_struct *work)
 	__stmpe_reset_fifo(ts->stmpe);
 
 	input_report_abs(ts->idev, ABS_PRESSURE, 0);
+	input_report_key(ts->idev, BTN_TOUCH, 0);
 	input_sync(ts->idev);
 }
 
 static irqreturn_t stmpe_ts_handler(int irq, void *data)
 {
 	u8 data_set[4];
-	int x, y, z;
+	int x, y, z, btn;
 	struct stmpe_touch *ts = data;
+	int int_sta;
 
 	/*
 	 * Cancel scheduled polling for release if we have new value
@@ -142,15 +151,24 @@ static irqreturn_t stmpe_ts_handler(int irq, void *data)
 	stmpe_set_bits(ts->stmpe, STMPE_REG_TSC_CTRL,
 				STMPE_TSC_CTRL_TSC_EN, 0);
 
+	int_sta = stmpe_reg_read(ts->stmpe, STMPE_REG_INT_STA);
+	btn = int_sta & (1 << STMPE_IRQ_TOUCH_DET);
+
 	stmpe_block_read(ts->stmpe, STMPE_REG_TSC_DATA_XYZ, 4, data_set);
 
 	x = (data_set[0] << 4) | (data_set[1] >> 4);
 	y = ((data_set[1] & 0xf) << 8) | data_set[2];
 	z = data_set[3];
 
+	if (invertx)
+		x = (XY_MAX - x) + XY_MIN;
+	if (inverty)
+		y = (XY_MAX - y) + XY_MIN;
+
 	input_report_abs(ts->idev, ABS_X, x);
 	input_report_abs(ts->idev, ABS_Y, y);
 	input_report_abs(ts->idev, ABS_PRESSURE, z);
+	input_report_key(ts->idev, BTN_TOUCH, btn);
 	input_sync(ts->idev);
 
        /* flush the FIFO after we have read out our values. */
@@ -330,9 +348,10 @@ static int __devinit stmpe_input_probe(struct platform_device *pdev)
 
 	input_set_drvdata(idev, ts);
 
-	input_set_abs_params(idev, ABS_X, 0, XY_MASK, 0, 0);
-	input_set_abs_params(idev, ABS_Y, 0, XY_MASK, 0, 0);
+	input_set_abs_params(idev, ABS_X, XY_MIN, XY_MAX, 0, 0);
+	input_set_abs_params(idev, ABS_Y, XY_MIN, XY_MAX, 0, 0);
 	input_set_abs_params(idev, ABS_PRESSURE, 0x0, 0xff, 0, 0);
+	input_set_capability(idev, EV_KEY, BTN_TOUCH);
 
 	ret = input_register_device(idev);
 	if (ret) {

@@ -230,6 +230,19 @@ config TOUCHSCREEN_EGALAX
 	  To compile this driver as a module, choose M here: the
 	  module will be called egalax_ts.
 
+config TOUCHSCREEN_FT5X06
+	tristate "FocalTech ft5x06 touchscreen"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you have a touchscreen panel with the FocalTech
+	  FT5x06 touch device.
+
+	  Do not use this driver if you are using an EDT display. Use the
+	  edt-ft5x06 driver instead.
+
+	  If unsure, say N.
+
 config TOUCHSCREEN_FUJITSU
 	tristate "Fujitsu serial touchscreen"
 	select SERIO
