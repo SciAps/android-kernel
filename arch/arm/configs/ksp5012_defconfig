@@ -504,7 +504,7 @@ CONFIG_USE_OF=y
 CONFIG_ZBOOT_ROM_TEXT=0
 CONFIG_ZBOOT_ROM_BSS=0
 # CONFIG_ARM_APPENDED_DTB is not set
-CONFIG_CMDLINE="console=ttyO2,115200n8 androidboot.console=ttyO2 omap_wdt.timer_margin=30 vmalloc=496M"
+CONFIG_CMDLINE="console=ttyO2,115200n8 androidboot.console=ttyO2 omap_wdt.timer_margin=30 vmalloc=496M omapfb.fb_opt=-1,-1,-1,1,800,480 omap-cpufreq.safe_suspend_freq=600000000"
 # CONFIG_CMDLINE_FROM_BOOTLOADER is not set
 CONFIG_CMDLINE_EXTEND=y
 # CONFIG_CMDLINE_FORCE is not set
@@ -1971,7 +1971,7 @@ CONFIG_TWL4030_POWER=y
 CONFIG_TWL6030_POWER=y
 # CONFIG_MFD_TWL4030_AUDIO is not set
 # CONFIG_TWL6030_PWM is not set
-# CONFIG_TWL6030_POWEROFF is not set
+CONFIG_TWL6030_POWEROFF=y
 CONFIG_TWL6040_CORE=y
 # CONFIG_MFD_STMPE is not set
 # CONFIG_MFD_TC3589X is not set

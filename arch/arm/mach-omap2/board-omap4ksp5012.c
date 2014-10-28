@@ -44,6 +44,8 @@
 #include <linux/leds-pca9532.h>
 #include <linux/platform_data/omap-abe-wm8974.h>
 #include <linux/omap4_duty_cycle_governor.h>
+#include <linux/omap_die_governor.h>
+
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
 
@@ -58,6 +60,8 @@
 #endif
 
 #include <mach/hardware.h>
+#include <mach/omap-secure.h>
+
 #include <asm/hardware/gic.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -82,7 +86,6 @@
 #include <plat/omap-serial.h>
 #include <plat/serial.h>
 #endif
-#include <plat/omap4-keypad.h>
 #include <plat/android-display.h>
 #ifdef CONFIG_PANEL_GENERIC_DPI
 #include <video/omap-panel-generic-dpi.h>
@@ -229,6 +232,20 @@ static void init_duty_governor(void)
 static void init_duty_governor(void){}
 #endif /*CONFIG_OMAP4_DUTY_CYCLE*/
 
+/* Initial set of thresholds for different thermal zones */
+static struct omap_thermal_zone thermal_zones[] = {
+	OMAP_THERMAL_ZONE("safe", 0, 25000, 65000, 250, 1000, 400),
+	OMAP_THERMAL_ZONE("monitor", 0, 60000, 80000, 250, 250, 250),
+	OMAP_THERMAL_ZONE("alert", 0, 75000, 90000, 250, 250, 150),
+	OMAP_THERMAL_ZONE("critical", 1, 85000, 115000, 250, 250, 50),
+};
+
+static struct omap_die_governor_pdata omap_gov_pdata = {
+	.zones = thermal_zones,
+	.zones_num = ARRAY_SIZE(thermal_zones),
+};
+
+
 static void __init pcm049_audio_mux_init(void)
 {
 	/* abe_mcbsp3_fsx */
@@ -364,42 +381,6 @@ static struct platform_device ksp5012_libs_bat_device = {
 #endif
 #endif
 
-#if 0
-#ifdef CONFIG_TOUCHSCREEN_FT5X06
-static struct regulator_consumer_supply pcm049_vmmc1_supply = {
-        .supply = "vmmc",
-	.dev_name = "omap_hsmmc.0",
-};
-
-static struct regulator_init_data pcm049_vmmc1 = {
-        .constraints = {
-//                .valid_ops_mask = REGULATOR_CHANGE_STATUS,
-		.always_on	= true,
-        },
-        .num_consumer_supplies = 1,
-        .consumer_supplies = &pcm049_vmmc1_supply,
-};
-static struct fixed_voltage_config pcm049_vedt = {
-	.supply_name			= "vedt",
-	.microvolts			= 3300000, /* 3.3V */
-	.startup_delay			= 30000, /* 30msec */
-	.gpio				= -EINVAL,
-	.enabled_at_boot		= 0,
-	.init_data = &pcm049_vmmc1,
-};
-
-static struct platform_device omap_vedt_device = {
-	.name		= "reg-fixed-voltage",
-	.id		= ARRAY_SIZE(pcm049_vcc_3v3_consumer_supply)
-				+ ARRAY_SIZE(pcm049_vcc_1v8_consumer_supply)
-				+ 1,
-	.dev = {
-		.platform_data = &pcm049_vedt,
-	},
-};
-#endif
-#endif
-
 #ifdef CONFIG_WL12XX_PLATFORM_DATA
 static struct regulator_consumer_supply pcm049_vmmc5_supply = {
         .supply = "vmmc",
@@ -456,7 +437,7 @@ static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
 		.caps		= MMC_CAP_4_BIT_DATA,
-//ne		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+//		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
 //		.ocr_mask	= MMC_VDD_165_195,
 		.gpio_wp	= -EINVAL,
 		.gpio_cd	= -EINVAL,
@@ -724,14 +705,6 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		.irq = OMAP44XX_IRQ_SYS_1N,
 		.platform_data = &pcm049_twldata,
 	},
-	{
-		I2C_BOARD_INFO("at24", 0x50),
-		.platform_data = &board_eeprom,
-	},
-	{
-		I2C_BOARD_INFO("tmp102_temp_sensor", 0x4B),
-		.platform_data = &tmp102_omap_info,
-	},
 #ifdef CONFIG_KSP5012_EXT_I2C1
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
@@ -743,6 +716,14 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	},
 #endif
 #endif
+	{
+		I2C_BOARD_INFO("at24", 0x50),
+		.platform_data = &board_eeprom,
+	},
+	{
+		I2C_BOARD_INFO("tmp102_temp_sensor", 0x4B),
+		.platform_data = &tmp102_omap_info,
+	},
 };
 
 /*
@@ -758,16 +739,6 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 		.platform_data = &pba_ft5x06_pdata,
 	},
 #endif
-#ifdef CONFIG_INPUT_ADXL34X_I2C
-        {
-                I2C_BOARD_INFO("adxl34x", 0x53),
-                .irq = OMAP_GPIO_IRQ(KSP5012_ADXL34X_IRQ),
-                .platform_data = &adxl34x_info,
-        },
-#endif
-	{
-		I2C_BOARD_INFO("wm8974", 0x1a), /* Audio */
-	},
 #ifdef CONFIG_KSP5012_EXT_I2C4
 	{
 		I2C_BOARD_INFO("rtc8564", 0x51),
@@ -779,6 +750,16 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 	},
 #endif
 #endif
+#ifdef CONFIG_INPUT_ADXL34X_I2C
+        {
+                I2C_BOARD_INFO("adxl34x", 0x53),
+                .irq = OMAP_GPIO_IRQ(KSP5012_ADXL34X_IRQ),
+                .platform_data = &adxl34x_info,
+        },
+#endif
+	{
+		I2C_BOARD_INFO("wm8974", 0x1a), /* Audio */
+	},
 };
 
 static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
@@ -815,7 +796,10 @@ static int __init pcm049_i2c_init(void)
 	omap_register_i2c_bus_board_data(4, &pcm049_i2c_4_bus_pdata);
 
 	omap4_pmic_get_config(&pcm049_twldata, TWL_COMMON_PDATA_USB,
+			TWL_COMMON_PDATA_MADC |
+			TWL_COMMON_PDATA_BCI |
 			TWL_COMMON_REGULATOR_VDAC |
+			TWL_COMMON_REGULATOR_VAUX1 |
 			TWL_COMMON_REGULATOR_VAUX2 |
 			TWL_COMMON_REGULATOR_VAUX3 |
 			TWL_COMMON_REGULATOR_VMMC |
@@ -826,7 +810,10 @@ static int __init pcm049_i2c_init(void)
 			TWL_COMMON_REGULATOR_VUSB |
 			TWL_COMMON_REGULATOR_CLK32KG |
 			TWL_COMMON_REGULATOR_V1V8 |
-			TWL_COMMON_REGULATOR_V2V1);
+			TWL_COMMON_REGULATOR_V2V1 |
+			TWL_COMMON_REGULATOR_SYSEN |
+			TWL_COMMON_REGULATOR_CLK32KAUDIO |
+			TWL_COMMON_REGULATOR_REGEN1);
 
 	/* Add one-time registers configuration */
 	if (cpu_is_omap443x())
@@ -1033,6 +1020,32 @@ static struct omap_dss_board_info pcm049_dss_data = {
 
 #define PCM049_FB_RAM_SIZE                SZ_16M /* 1920×1080*4 * 2 */
 
+static struct dsscomp_platform_data dsscomp_config_pcm049 = {
+	.tiler1d_slotsz = PCM049_FB_RAM_SIZE,
+};
+
+static struct sgx_omaplfb_config omaplfb_config_pcm049[] = {
+	{
+		.tiler2d_buffers = 2,
+		.swap_chain_length = 2,
+	},
+	{
+		.vram_buffers = 2,
+		.swap_chain_length = 2,
+	},
+};
+
+static struct sgx_omaplfb_platform_data omaplfb_plat_data_pcm049 = {
+	.num_configs = ARRAY_SIZE(omaplfb_config_pcm049),
+	.configs = omaplfb_config_pcm049,
+};
+
+static struct omapfb_platform_data pcm049_fb_pdata = {
+	.mem_desc = {
+		.region_cnt = ARRAY_SIZE(omaplfb_config_pcm049),
+	},
+};
+
 #if defined(CONFIG_USB_EHCI_HCD_OMAP) || defined(CONFIG_USB_OHCI_HCD_OMAP3)
 static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
 	.port_mode[0] = OMAP_EHCI_PORT_MODE_PHY,
@@ -1066,6 +1079,7 @@ static void __init pcm049_ehci_ohci_init(void){}
 
 static void __init pcm049_display_init(void)
 {
+	omapfb_set_platform_data(&pcm049_fb_pdata);
 	omap_vram_set_sdram_vram(PCM049_FB_RAM_SIZE, 0);
 	omap_mux_init_gpio(KSP5012_LCD_ENABLE, OMAP_PIN_OUTPUT);
 
@@ -1230,8 +1244,16 @@ static inline void __init ksp5012_btwilink_init(void)
 	platform_device_register(&btwilink_device);
 }
 
-/* empty custom_config to not set EMIF_CUSTOM_CONFIG_EXTENDED_TEMP_PART */
-static struct __initdata emif_custom_configs custom_configs;
+#if defined(CONFIG_TI_EMIF) || defined(CONFIG_TI_EMIF_MODULE)
+static struct __devinitdata emif_custom_configs custom_configs = {
+	.mask   = EMIF_CUSTOM_CONFIG_LPMODE,
+	.lpmode = EMIF_LP_MODE_SELF_REFRESH,
+	.lpmode_timeout_performance = 512,
+	.lpmode_timeout_power = 512,
+	/* only at OPP100 should we use performance value */
+	.lpmode_freq_threshold = 400000000,
+};
+#endif
 
 static void __init emif_setup_device_details(unsigned long base)
 {
@@ -1303,18 +1325,20 @@ static void __init pcm049_init(void)
 	omap_create_board_props();
 
 	pcm049_i2c_init();
+	omap4_board_serial_init();
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
-	omap4_board_serial_init();
 	pcm049_init_smsc911x();
 	pcm049_hsmmc_init(mmc);
 
 	pcm049_ehci_ohci_init();
 	usb_musb_init(&musb_board_data);
+
+	init_duty_governor();
 	omap_init_dmm_tiler();
 	omap4_register_ion();
+	omap_die_governor_register_pdata(&omap_gov_pdata);
 	pcm049_display_init();
-	init_duty_governor();
 	pcm049_init_nand();
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
@@ -1342,14 +1366,6 @@ static void __init pcm049_init(void)
 #endif
 
 	omap_enable_smartreflex_on_init();
-#if 0
-	/*
-	 * 7X-38.400MBB-T oscillator uses:
-	 * Up time = startup time(max 10ms) + enable time (max 100ns: round 1us)
-	 * Down time = disable time (max 100ns: round 1us)
-	 */
-	omap_pm_set_osc_lp_time(11000, 1);
-#endif
 }
 
 static void __init pcm049_reserve(void)
@@ -1358,9 +1374,23 @@ static void __init pcm049_reserve(void)
 	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
 			OMAP_RAM_CONSOLE_SIZE_DEFAULT);
 #endif
+
 	omap_rproc_reserve_cma(RPROC_CMA_OMAP4);
+	omap_android_display_setup(&pcm049_dss_data,
+			&dsscomp_config_pcm049,
+			&omaplfb_plat_data_pcm049,
+			&pcm049_fb_pdata);
+
 	omap4_ion_init();
+	omap4_secure_workspace_addr_default();
 	omap_reserve();
+}
+
+static void __init ksp5012_init_early(void)
+{
+	omap4430_init_early();
+	if (cpu_is_omap446x())
+		omap_tps6236x_gpio_no_reset_wa(TPS62361_GPIO, -1, 32);
 }
 
 MACHINE_START(PCM049, "pcm049")
@@ -1368,7 +1398,7 @@ MACHINE_START(PCM049, "pcm049")
 	.atag_offset	= 0x100,
 	.reserve	= pcm049_reserve,
 	.map_io		= omap4_map_io,
-	.init_early	= omap4430_init_early,
+	.init_early	= ksp5012_init_early,
 	.init_irq	= gic_init_irq,
 	.handle_irq	= gic_handle_irq,
 	.init_machine	= pcm049_init,
