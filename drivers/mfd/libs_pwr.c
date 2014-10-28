@@ -16,7 +16,6 @@ static struct i2c_client *libs_client;
 
 struct libs_pwr_data {
 	struct	i2c_client	*client;
-	const struct attribute_group **groups;
 
 	/* battery profile values */
 	unsigned int		batt_max_voltage;
@@ -42,7 +41,7 @@ typedef struct
 } libs_regs;
 
 static libs_cmds libs_known_cmds[] = {
-	{ "reset_micro",	{0xA0, 0xA7, 0x7A} },
+	{ "reset_micro",	{0xA0, 0x7A, 0xA7} },
 	{ "enter_bl",		{0xA1, 0x3C, 0xC3} },
 	{ "unlock_nvram",	{0xA2, 0x55, 0xAA} },
 };
@@ -534,7 +533,6 @@ static DEVICE_ATTR(min_voltage, 0666, libs_show_bvar_min, libs_store_bvar_min);
 
 static int libs_setup_sysfs(struct i2c_client *client)
 {
-	kobject_create_and_add
 	device_create_file(&client->dev, &dev_attr_read_reg);
 	device_create_file(&client->dev, &dev_attr_write_reg);
 	device_create_file(&client->dev, &dev_attr_cmd);
@@ -564,6 +562,7 @@ static int libs_pwr_probe(struct i2c_client *client,
 
 	libs_pwr = kzalloc(sizeof(struct libs_pwr_data), GFP_KERNEL);
 	if (!libs_pwr) {
+		dev_err(&client->dev, "cannot allocate memory\n");
 		return -ENOMEM;
 	}
 
@@ -574,6 +573,7 @@ static int libs_pwr_probe(struct i2c_client *client,
 	libs_pwr->nvram_unlocked = 0;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+		dev_err(&client->dev, "i2c not supported\n");
 		return -EPFNOSUPPORT;
 	}
 
