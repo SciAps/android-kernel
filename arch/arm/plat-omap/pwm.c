@@ -200,6 +200,10 @@ int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
 	int load_value, match_value;
 	unsigned long clk_rate;
 
+	if (!pwm->running) {
+		return -EIO;
+	}
+
 	DEV_DBG(&pwm->pdev->dev,
 			"duty cycle: %d, period %d\n",
 			duty_ns, period_ns);
