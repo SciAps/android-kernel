@@ -135,7 +135,7 @@ static struct gpio_keys_button ksp5012_gpio_keys[] = {
 		.gpio			= GPIO_POWER_BUTTON,
 		.active_low		= 1,
 		.wakeup			= 1,
-		.debounce_interval	= 10,
+		.debounce_interval	= 5,
 	},
 };
 
