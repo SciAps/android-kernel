@@ -483,6 +483,7 @@ int libs_bat_get_voltage_now(void)
 
 	return batt_voltage_now;
 }
+EXPORT_SYMBOL(libs_bat_get_voltage_now);
 
 /* capacity constants */
 #define BATT_MAX_VOLTAGE	0x3BC4 // 15300
@@ -512,6 +513,7 @@ int libs_bat_get_capacity(void)
 
 	return (int) batt_capacity;
 }
+EXPORT_SYMBOL(libs_bat_get_capacity);
 
 int libs_bat_poll_charge_source(void)
 {
@@ -521,6 +523,7 @@ int libs_bat_poll_charge_source(void)
 		return CHARGE_SOURCE_NONE;
 	}
 }
+EXPORT_SYMBOL(libs_bat_poll_charge_source);
 /* end external battery functions */
 
 static DEVICE_ATTR(read_reg, 0666, libs_show_all_reg, libs_print_reg);
@@ -590,6 +593,7 @@ static int libs_pwr_remove(struct i2c_client *client)
 	struct libs_pwr_data *libs_pwr;
 
 	libs_pwr = i2c_get_clientdata(client);
+
 	libs_delete_sysfs(client);
 	i2c_unregister_device(client);
 
@@ -598,12 +602,22 @@ static int libs_pwr_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void libs_pwr_shutdown(struct i2c_client *client)
+{
+	int err;
+
+	err = libs_pwr_i2c_write(client,
+                                libs_known_cmds[0].buf, 3);
+        if (err < 0)
+		dev_err(&client->dev, "%s: could not shutdown PIC\n", __func__);
+}
+
 static struct i2c_device_id libs_pwr_idtable[] = {
 	{ "libs_pwr", 0 },
 	{ }
 };
 
-MODULE_DEVICE_TABLE(i2c, libs_pwr_idtable[]);
+MODULE_DEVICE_TABLE(i2c, libs_pwr_idtable);
 
 static struct i2c_driver libs_pwr_driver = {
 	.driver = {
@@ -613,8 +627,8 @@ static struct i2c_driver libs_pwr_driver = {
 	.id_table   = libs_pwr_idtable,
 	.probe      = libs_pwr_probe,
 	.remove     = libs_pwr_remove,
-#if 0
 	.shutdown   = libs_pwr_shutdown,
+#if 0
 	.suspend    = libs_pwr_suspend,
 	.resume     = libs_pwr_resume,
 #endif
