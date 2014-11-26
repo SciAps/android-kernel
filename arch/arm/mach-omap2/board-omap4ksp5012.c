@@ -742,7 +742,7 @@ static int __init pcm049_i2c_init(void)
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_1_boardinfo));
-	omap_register_i2c_bus(3, 400, NULL, 0);
+	omap_register_i2c_bus(3, 100, NULL, 0);
 	omap_register_i2c_bus(4, 100, pcm049_i2c_4_boardinfo,
 				ARRAY_SIZE(pcm049_i2c_4_boardinfo));
 
