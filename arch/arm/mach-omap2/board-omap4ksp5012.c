@@ -49,16 +49,6 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
 
-#ifdef CONFIG_BATTERY_ANDROID
-#include <linux/platform_data/android_battery.h>
-#ifdef CONFIG_MFD_LIBS_PWR
-#include <linux/mfd/libs_pwr.h>
-#endif
-#ifdef CONFIG_BATTERY_LIBS
-#include <linux/power/libs_battery.h>
-#endif
-#endif
-
 #include <mach/hardware.h>
 #include <mach/omap-secure.h>
 
@@ -334,53 +324,6 @@ static struct platform_device ksp5012_abe_audio_device = {
         },
 };
 
-#ifdef CONFIG_BATTERY_ANDROID
-/* TODO: ADC implementation for KSP-5012 battery functions.
- *       Use charger/smart battery implementation when available */
-static void ksp5012_bat_charge_enable(int enable)
-{
-	return;
-}
-
-static struct android_bat_platform_data ksp5012_bat_pdata = {
-	.set_charging_enable = ksp5012_bat_charge_enable,
-	.poll_charge_source = libs_bat_poll_charge_source,
-	.get_capacity = libs_bat_get_capacity,
-	.get_voltage_now = libs_bat_get_voltage_now,
-	.temp_high_threshold = 50, // dummy value
-	.temp_high_recovery = 75, // dummy value
-	.temp_low_recovery = 10, // dummy value
-	.temp_low_threshold = 20, // dummy value
-	.full_charging_time = 600, // dummy value
-	.recharging_time = 300, // dummy value
-	.recharging_voltage = 24000, // dummy value
-};
-
-
-static struct platform_device ksp5012_android_bat_device = {
-	.name = "android-battery",
-	.id = -1,
-	.dev = {
-		.platform_data = &ksp5012_bat_pdata,
-	},
-};
-
-#ifdef CONFIG_BATTERY_LIBS
-static struct libs_bat_platform_data ksp5012_libs_bat_pdata = {
-	.voltage = 16000,
-	.capacity = 100,
-};
-
-static struct platform_device ksp5012_libs_bat_device = {
-	.name = "libs-battery",
-	.id = -1,
-	.dev = {
-		.platform_data = &ksp5012_libs_bat_pdata,
-	},
-};
-#endif
-#endif
-
 #ifdef CONFIG_WL12XX_PLATFORM_DATA
 static struct regulator_consumer_supply pcm049_vmmc5_supply = {
         .supply = "vmmc",
@@ -627,12 +570,6 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
-#ifdef CONFIG_BATTERY_ANDROID
-#ifdef CONFIG_BATTERY_LIBS
-	&ksp5012_libs_bat_device,
-#endif
-	&ksp5012_android_bat_device,
-#endif
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -705,17 +642,6 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		.irq = OMAP44XX_IRQ_SYS_1N,
 		.platform_data = &pcm049_twldata,
 	},
-#ifdef CONFIG_KSP5012_EXT_I2C1
-	{
-		I2C_BOARD_INFO("rtc8564", 0x51),
-		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
-	},
-#ifdef CONFIG_MFD_LIBS_PWR
-	{
-		I2C_BOARD_INFO("libs_pwr", 0x59),
-	},
-#endif
-#endif
 	{
 		I2C_BOARD_INFO("at24", 0x50),
 		.platform_data = &board_eeprom,
@@ -738,17 +664,6 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 		.irq = OMAP_GPIO_IRQ(KSP5012_FT5x06_GPIO_IRQ),
 		.platform_data = &pba_ft5x06_pdata,
 	},
-#endif
-#ifdef CONFIG_KSP5012_EXT_I2C4
-	{
-		I2C_BOARD_INFO("rtc8564", 0x51),
-		.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
-	},
-#ifdef CONFIG_MFD_LIBS_PWR
-	{
-		I2C_BOARD_INFO("libs_pwr", 0x59),
-	},
-#endif
 #endif
 #ifdef CONFIG_INPUT_ADXL34X_I2C
         {

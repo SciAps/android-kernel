@@ -353,6 +353,7 @@ obj-$(CONFIG_ARCH_OMAP4)		+= board-omap-identity.o
 obj-$(CONFIG_ARCH_OMAP5)		+= board-omap-identity.o
 obj-$(CONFIG_OMAP_HSI_DEVICE)           += omap_hsi.o
 
+obj-$(CONFIG_KSP5012_VERSION)		+= board-omap4ksp5012-version.o
 
 ifneq ($(CONFIG_ARCH_OMAP5_ES1),)
 obj-y					+=omap_hwmod_54xx_es1_data.o
@@ -385,6 +386,7 @@ endif
 ifneq ($(CONFIG_OMAP_RPMSG_RESMGR),)
 obj-y					+= rpmsg_resmgr.o
 endif
+
 
 obj-$(CONFIG_ION_OMAP)			+= omap4_ion.o omap5_ion.o
 obj-$(CONFIG_OMAP_RAM_CONSOLE)		+= omap_ram_console.o

@@ -556,28 +556,13 @@ config OMAP4_ARM_ERRATA_743622
 	  This is handled for HS devices in the PPA code and does not need to be
 	  enabled."
 
-choice
-	prompt "KSP5012 External I2C Bus"
-	default KSP5012_EXT_I2C1
-
-config KSP5012_EXT_I2C1
-	bool "Use I2C1 for RTC and external devices"
-	depends on MACH_PCM049
+config KSP5012_VERSION
+	tristate "Selects KSP5012's external I2C-bus based on FPGA version"
+	depends on MACH_PCM049 && m && (MFD_LIBS_PWR=y || MFD_LIBS_PWR=m || BATTERY_LIBS)
+	default m
 	help
-	  The .A3 carrier board has jumpers to select the I2C bus for
-	  communicating with the RTC and assorted external devices.
-
-	  Select this if J6 and J7 are in the 2+3 position.
-
-config KSP5012_EXT_I2C4
-	bool "Use I2C4 for RTC and external devices"
-	depends on MACH_PCM049
-	help
-	  The .A3 carrier board has jumpers to select the I2C bus for
-	  communicating with the RTC and assorted external devices.
-
-	  Select this if J6 and J7 are in the 1+2 position.
-endchoice
+	  Build KSP5012 module that registers external i2c devices with the proper
+	  i2c bus depending on input from FPGA version check application
 
 endmenu
 

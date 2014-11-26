@@ -28,11 +28,13 @@ int libs_bat_get_voltage_now(void)
 {
 	return libs_bat->pdata->voltage;
 }
+EXPORT_SYMBOL(libs_bat_get_voltage_now);
 
 int libs_bat_get_capacity(void)
 {
 	return (int) libs_bat->pdata->capacity;
 }
+EXPORT_SYMBOL(libs_bat_get_capacity);
 
 int libs_bat_poll_charge_source(void)
 {
@@ -42,6 +44,7 @@ int libs_bat_poll_charge_source(void)
 		return CHARGE_SOURCE_NONE;
 	}
 }
+EXPORT_SYMBOL(libs_bat_poll_charge_source);
 /* end external battery functions */
 
 static void process_store(struct device *dev,
