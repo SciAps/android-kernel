@@ -474,8 +474,9 @@ int libs_bat_get_voltage_now(void)
 	unsigned int batt_voltage_now;
 
         reg = libs_known_regs[libs_lookup(0, "vbat_sense")].reg;
-        libs_pwr_i2c_read(libs_client, &reg, 2, data);
-	batt_voltage_now = (data[1] << 8) + data[0];
+        //libs_pwr_i2c_read(libs_client, &reg, 2, data);
+	//batt_voltage_now = (data[1] << 8) + data[0];
+	batt_voltage_now = 0x3BC4;
 
 
 	libs_pwr->batt_prev_voltage = batt_voltage_now;
