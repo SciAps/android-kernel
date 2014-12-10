@@ -931,21 +931,22 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 	printk("[FST] FT5x0x Firmware version = 0x%x\n", uc_reg_value);
 #ifdef CONFIG_MACH_PCM049
 #define NHD_50_FW	0x05
-#define NHD_43_FW	0x11
-	if (NHD_43_FW == uc_reg_value) {
+#define NHD_43_FW_0	0x11
+#define NHD_43_FW_1	0x10
+	switch (uc_reg_value) {
+	case NHD_43_FW_0:
+	case NHD_43_FW_1:
 		screen_max_x = 480;
 		screen_max_y = 272;
-	} else if (NHD_50_FW == uc_reg_value) {
-		screen_max_x = 800;
-		screen_max_y = 480;
-	} else {
+		break;
+	case NHD_50_FW:
+	default:
 		screen_max_x = SCREEN_MAX_X;
 		screen_max_y = SCREEN_MAX_Y;
-		dev_err(&client->dev, "ksp5012: Unrecognized firmware. "
-				"Reverting to defaults: x=%d y=%d.\n",
-				screen_max_x, screen_max_y);
 	}
-	
+
+	dev_info(&client->dev, "ksp5012: Setting touchscreen boundaries: "
+				"x=%d y=%d.\n", screen_max_x, screen_max_y);
 #else
 	screen_max_x = SCREEN_MAX_X;
 	screen_max_y = SCREEN_MAX_Y;
