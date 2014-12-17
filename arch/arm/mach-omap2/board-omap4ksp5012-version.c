@@ -27,7 +27,8 @@
 
 #ifdef CONFIG_BATTERY_ANDROID
 #include <linux/platform_data/android_battery.h>
-#if defined(CONFIG_MFD_LIBS_PWR) || defined(CONFIG_MFD_LIBS_PWR_MODULE)
+#if (defined(CONFIG_MFD_LIBS_PWR) || defined(CONFIG_MFD_LIBS_PWR_MODULE)) && \
+	!defined(CONFIG_BATTERY_LIBS)
 #include <linux/mfd/libs_pwr.h>
 #endif
 #ifdef CONFIG_BATTERY_LIBS
