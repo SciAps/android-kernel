@@ -9,20 +9,24 @@
 #include <linux/of.h>
 #include <linux/i2c.h>
 #include <linux/types.h>
-#include <linux/mfd/libs_pwr.h>
 #include <linux/platform_data/android_battery.h>
+
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
+#include <linux/mfd/libs_pwr.h>
+#endif
 
 static struct i2c_client *libs_client;
 
 struct libs_pwr_data {
 	struct	i2c_client	*client;
 
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 	/* battery profile values */
 	unsigned int		batt_max_voltage;
 	unsigned int		batt_low_voltage;
 	unsigned int		batt_min_voltage;
 	unsigned int		batt_prev_voltage;
-
+#endif
 	bool			nvram_unlocked;
 };
 
@@ -172,6 +176,7 @@ static ssize_t libs_print_reg(struct device *dev,
 	u8 data[2];
 	int index;
 	int buf_size, err;
+	ssize_t ret = count;
 
 	blank = strchr(buf, ' ');
 	if (NULL != blank) {
@@ -191,19 +196,25 @@ static ssize_t libs_print_reg(struct device *dev,
 	
 	if (index < 0) {
 		dev_err(dev, "%s is an invalid register name\n", reg_name);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	} else {
 		err = libs_pwr_i2c_read(libs_client,
 				&(libs_known_regs[index].reg), 2,
 				data);
-		if (err < 0)
-			return err;
-
+		if (err < 0) {
+			ret = -EINVAL;
+			goto exit;
+		}
 
 		dev_info(dev, "%s value: 0x%.2x%.2x\n",
 				reg_name, data[1], data[0]);
 	}
-	return count;
+
+exit:
+	kfree(reg_name);
+
+	return ret;
 }
 
 static ssize_t libs_store_reg(struct device *dev,
@@ -214,7 +225,8 @@ static ssize_t libs_store_reg(struct device *dev,
 	char *blank, end;
 	char *reg_name = NULL, *temp1 = NULL, *temp2 = NULL;
 	u8 data[3];
-	int size, index, res, ret;
+	int size, index, err;
+	ssize_t ret = count;
 
 	/* extract the register name from the input */
 	blank = strchr(buf, ' ');
@@ -228,29 +240,39 @@ static ssize_t libs_store_reg(struct device *dev,
 
 	/* store the data_low and data_high strings */
 	temp1 = kzalloc(sizeof(char)*5, GFP_KERNEL);
-	temp2 = kzalloc(sizeof(char)*5, GFP_KERNEL);
-	if (NULL == temp1 || NULL == temp2) {
+	if (NULL == temp1) {
 		dev_err(dev, "Could not allocate memory for data\n");
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto reg_name;
 	}
-	res = sscanf(++blank, "%s %s%c", temp1, temp2, &end);
-	if (res != 3) {
+	temp2 = kzalloc(sizeof(char)*5, GFP_KERNEL);
+	if (NULL == temp2) {
+		dev_err(dev, "Could not allocate memory for data\n");
+		ret = -ENOMEM;
+		goto temp1;
+	}
+
+	err = sscanf(++blank, "%s %s%c", temp1, temp2, &end);
+	if (err != 3) {
 		dev_err(dev, "Invalid inputs\n"
 			"Expected [reg_name] [data_low] [data_high]\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	/* convert the data strings into u8 values */
-	ret = kstrtou8(temp1, 0, &data[1]);
-	if (ret < 0) {
+	err = kstrtou8(temp1, 0, &data[1]);
+	if (err < 0) {
 		dev_err(dev, "[data_low] is not in the proper 0x## format\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
-	ret = kstrtou8(temp2, 0, &data[2]);
-	if (ret < 0) {
+	err = kstrtou8(temp2, 0, &data[2]);
+	if (err < 0) {
 		dev_err(dev, "[data_low] is not in the proper 0x## format\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	/* find register name in the lookup table */
@@ -259,21 +281,33 @@ static ssize_t libs_store_reg(struct device *dev,
 	/* write selectively based on writable and nvram flags */
 	if (index < 0) {
 		dev_err(dev, "%s is an invalid register name\n", reg_name);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	} else if (!libs_known_regs[index].writable) {
 		dev_err(dev, "%s is read-only\n", reg_name);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	} else if (libs_known_regs[index].nvram &&
 			!libs_pwr->nvram_unlocked) {
 		dev_err(dev, "%s requires the NVRAM to be unlocked "
 				"before writing is possible\n", reg_name);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	} else {
 		data[0] = libs_known_regs[index].reg;
 		libs_pwr_i2c_write(libs_client, data, 3);
 	
-		return count;
+		goto exit;
 	}
+
+exit:
+	kfree(temp2);
+temp1:
+	kfree(temp1);
+reg_name:
+	kfree(reg_name);
+
+	return ret;
 }
 
 static ssize_t libs_trig_cmd(struct device *dev,
@@ -285,6 +319,7 @@ static ssize_t libs_trig_cmd(struct device *dev,
 	char *cmd = NULL;
 	int index;
 	int buf_size, err;
+	ssize_t ret = count;
 
 	blank = strchr(buf, ' ');
 	if (NULL != blank) {
@@ -304,21 +339,29 @@ static ssize_t libs_trig_cmd(struct device *dev,
 
 	if (index < 0) {
 		dev_err(dev, "%s is an invalid command\n", cmd);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	} else {
 		err = libs_pwr_i2c_write(libs_client,
 				libs_known_cmds[index].buf, 3);
-		if (err < 0)
-			return err;
+		if (err < 0) {
+			ret = err;
+			goto exit;
+		}
 
 		if (!strcmp("unlock_nvram", cmd)) {
 			libs_pwr->nvram_unlocked = 1;
 			i2c_set_clientdata(libs_client, libs_pwr);
 		}
 	}
-	return count;
+
+exit:
+	kfree(cmd);
+
+	return ret;
 }
 
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 static ssize_t libs_show_bvars(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -370,7 +413,8 @@ static ssize_t libs_store_bvar_max(struct device *dev,
 	struct libs_pwr_data *libs_pwr = i2c_get_clientdata(libs_client);
 	char * bvar_temp_val = NULL;
 	char end;
-	int res, ret, size;
+	int err, size;
+	ssize_t ret = count;
 
 	/* handle integer input */
 	size = strlen(buf);
@@ -379,24 +423,30 @@ static ssize_t libs_store_bvar_max(struct device *dev,
 		dev_err(dev, "Could not allocate memory for max variable\n");
 		return -ENOMEM;
 	}
-	res = sscanf(buf, "%s%c", bvar_temp_val, &end);
-	if (res != 2) {
-			dev_err(dev, "Invalid input. "
+	err = sscanf(buf, "%s%c", bvar_temp_val, &end);
+	if (err != 2) {
+		dev_err(dev, "Invalid input. "
 			"Expected [max variable integer]\n");
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	/* convert the input string into uint */
-	ret = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_max_voltage));
-	if (ret < 0) {
+	err = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_max_voltage));
+	if (err < 0) {
 		dev_err(dev, "Input is not a number\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	i2c_set_clientdata(libs_client, libs_pwr);
 
-	return count;
+exit:
+	kfree(bvar_temp_val);
 
+	return ret;
 }
+
 static ssize_t libs_store_bvar_low(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
@@ -404,7 +454,8 @@ static ssize_t libs_store_bvar_low(struct device *dev,
 	struct libs_pwr_data *libs_pwr = i2c_get_clientdata(libs_client);
 	char * bvar_temp_val = NULL;
 	char end;
-	int res, ret, size;
+	int err, size;
+	ssize_t ret = count;
 
 	/* handle integer input */
 	size = strlen(buf);
@@ -413,24 +464,30 @@ static ssize_t libs_store_bvar_low(struct device *dev,
 		dev_err(dev, "Could not allocate memory for low variable\n");
 		return -ENOMEM;
 	}
-	res = sscanf(buf, "%s%c", bvar_temp_val, &end);
-	if (res != 2) {
-			dev_err(dev, "Invalid input. "
+	err = sscanf(buf, "%s%c", bvar_temp_val, &end);
+	if (err != 2) {
+		dev_err(dev, "Invalid input. "
 			"Expected [low variable integer]\n");
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	/* convert the input string into uint */
-	ret = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_low_voltage));
-	if (ret < 0) {
+	err = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_low_voltage));
+	if (err < 0) {
 		dev_err(dev, "Input is not a number\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	i2c_set_clientdata(libs_client, libs_pwr);
 
-	return count;
+exit:
+	kfree(bvar_temp_val);
 
+	return ret;
 }
+
 static ssize_t libs_store_bvar_min(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
@@ -438,7 +495,8 @@ static ssize_t libs_store_bvar_min(struct device *dev,
 	struct libs_pwr_data *libs_pwr = i2c_get_clientdata(libs_client);
 	char * bvar_temp_val = NULL;
 	char end;
-	int res, ret, size;
+	int err, size;
+	ssize_t ret = count;
 
 	/* handle integer input */
 	size = strlen(buf);
@@ -447,22 +505,28 @@ static ssize_t libs_store_bvar_min(struct device *dev,
 		dev_err(dev, "Could not allocate memory for min variable\n");
 		return -ENOMEM;
 	}
-	res = sscanf(buf, "%s%c", bvar_temp_val, &end);
-	if (res != 2) {
-			dev_err(dev, "Invalid input. "
+	err = sscanf(buf, "%s%c", bvar_temp_val, &end);
+	if (err != 2) {
+		dev_err(dev, "Invalid input. "
 			"Expected [min variable integer]\n");
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	/* convert the input string into uint */
-	ret = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_min_voltage));
-	if (ret < 0) {
+	err = kstrtouint(bvar_temp_val, 0, &(libs_pwr->batt_min_voltage));
+	if (err < 0) {
 		dev_err(dev, "Input is not a number\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	i2c_set_clientdata(libs_client, libs_pwr);
 
-	return count;
+exit:
+	kfree(bvar_temp_val);
+
+	return ret;
 }
 
 /* begin external battery functions */
@@ -525,23 +589,28 @@ int libs_bat_poll_charge_source(void)
 }
 EXPORT_SYMBOL(libs_bat_poll_charge_source);
 /* end external battery functions */
+#endif
 
 static DEVICE_ATTR(read_reg, 0666, libs_show_all_reg, libs_print_reg);
 static DEVICE_ATTR(write_reg, 0222, NULL, libs_store_reg);
 static DEVICE_ATTR(cmd, 0222, NULL, libs_trig_cmd);
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 //static DEVICE_ATTR(print_batt_vars, 0444, libs_show_bvars, NULL);
 static DEVICE_ATTR(max_voltage, 0666, libs_show_bvar_max, libs_store_bvar_max);
 static DEVICE_ATTR(low_voltage, 0666, libs_show_bvar_low, libs_store_bvar_low);
 static DEVICE_ATTR(min_voltage, 0666, libs_show_bvar_min, libs_store_bvar_min);
+#endif
 
 static int libs_setup_sysfs(struct i2c_client *client)
 {
 	device_create_file(&client->dev, &dev_attr_read_reg);
 	device_create_file(&client->dev, &dev_attr_write_reg);
 	device_create_file(&client->dev, &dev_attr_cmd);
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 	device_create_file(&client->dev, &dev_attr_max_voltage);
 	device_create_file(&client->dev, &dev_attr_low_voltage);
 	device_create_file(&client->dev, &dev_attr_min_voltage);
+#endif
 
 	return 0;
 }
@@ -551,9 +620,11 @@ static int libs_delete_sysfs(struct i2c_client *client)
 	device_remove_file(&client->dev, &dev_attr_read_reg);
 	device_remove_file(&client->dev, &dev_attr_write_reg);
 	device_remove_file(&client->dev, &dev_attr_cmd);
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 	device_remove_file(&client->dev, &dev_attr_max_voltage);
 	device_remove_file(&client->dev, &dev_attr_low_voltage);
 	device_remove_file(&client->dev, &dev_attr_min_voltage);
+#endif
 
 	return 0;
 }
@@ -569,10 +640,12 @@ static int libs_pwr_probe(struct i2c_client *client,
 		return -ENOMEM;
 	}
 
+#if defined(CONFIG_BATTERY_ANDROID) && !defined(CONFIG_BATTERY_LIBS)
 	libs_pwr->batt_max_voltage	= BATT_MAX_VOLTAGE;
 	libs_pwr->batt_low_voltage	= BATT_LOW_VOLTAGE;
 	libs_pwr->batt_min_voltage	= BATT_MIN_VOLTAGE;
 	libs_pwr->batt_prev_voltage	= BATT_LOW_VOLTAGE;
+#endif
 	libs_pwr->nvram_unlocked = 0;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {

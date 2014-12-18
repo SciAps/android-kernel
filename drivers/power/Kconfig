@@ -227,7 +227,7 @@ config BATTERY_ANDROID
 
 config BATTERY_LIBS
 	tristate "Sciaps LIBs Battery Workaround"
-	depends on BATTERY_ANDROID && MACH_PCM049 && !MFD_LIBS_PWR && !MFD_LIBS_PWR_MODULE
+	depends on BATTERY_ANDROID && MACH_PCM049
 	default n
 	help
 	  Say Y to enable sysfs support for Sciaps' LIBs
