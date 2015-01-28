@@ -933,8 +933,10 @@ static int __devinit ft5x0x_ts_probe(struct i2c_client *client,
 #define NHD_50_FW	0x05
 #define NHD_43_FW_0	0x11
 #define NHD_43_FW_1	0x10
+#define NHD_43_FW_2	0x30
 	switch (uc_reg_value) {
 	case NHD_43_FW_0:
+	case NHD_43_FW_2:
 	case NHD_43_FW_1:
 		screen_max_x = 480;
 		screen_max_y = 272;
