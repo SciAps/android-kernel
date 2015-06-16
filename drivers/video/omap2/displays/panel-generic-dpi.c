@@ -492,14 +492,14 @@ static struct panel_config generic_dpi_panels[] = {
 			.hbp		= 2,
 			.hfp		= 2,
 
-			.vsw		= 2,
-			.vfp		= 10,
+			.vsw		= 10,
+			.vfp		= 2,
 			.vbp		= 2,
 		},
 		.acbi			= 0x0,
 		.acb			= 0x28,
 		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
-					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+					  OMAP_DSS_LCD_IHS,
 		.name			= "nhd43480272ef-atxl",
 	},
 
