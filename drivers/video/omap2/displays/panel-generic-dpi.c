@@ -488,9 +488,9 @@ static struct panel_config generic_dpi_panels[] = {
 			.y_res		= 272,
 
 			.pixel_clock	= 9000,
-			.hsw		= 40,
+			.hsw		= 41,
 			.hbp		= 2,
-			.hfp		= 3,
+			.hfp		= 2,
 
 			.vsw		= 10,
 			.vfp		= 2,
@@ -499,7 +499,7 @@ static struct panel_config generic_dpi_panels[] = {
 		.acbi			= 0x0,
 		.acb			= 0x28,
 		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
-					  OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC,
+					  OMAP_DSS_LCD_IHS,
 		.name			= "nhd43480272ef-atxl",
 	},
 
