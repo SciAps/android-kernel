@@ -242,6 +242,16 @@ config TOUCHSCREEN_FT5X06
 	  edt-ft5x06 driver instead.
 
 	  If unsure, say N.
+	  
+	config TOUCH_MAX_X
+		int "touch max x resolution"
+		depends on TOUCHSCREEN_FT5X06
+		default 800
+		
+	config TOUCH_MAX_Y
+		int "touch max y resolution"
+		depends on TOUCHSCREEN_FT5X06
+		default 480
 
 config TOUCHSCREEN_FUJITSU
 	tristate "Fujitsu serial touchscreen"
