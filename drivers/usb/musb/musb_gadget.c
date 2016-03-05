@@ -1910,7 +1910,7 @@ int __devinit musb_gadget_setup(struct musb *musb)
 	 */
 
 	musb->g.ops = &musb_gadget_operations;
-	musb->g.max_speed = USB_SPEED_HIGH;
+	musb->g.max_speed = USB_SPEED_LOW;
 	musb->g.speed = USB_SPEED_UNKNOWN;
 
 	musb->allow_pullup = 1;
