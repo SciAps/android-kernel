@@ -282,6 +282,10 @@ obj-$(CONFIG_MACH_OMAP4_PANDA)		+= board-omap4panda.o
 obj-$(CONFIG_MACH_PCM049)		+= board-omap4ksp5012.o \
 					   board-44xx-serial.o
 
+obj-$(CONFIG_MACH_OMAP4_PHENIX)	+= \
+board-omap4phenix.o \
+board-44xx-serial.o
+
 obj-$(CONFIG_MACH_OMAP3517EVM)		+= board-am3517evm.o
 
 obj-$(CONFIG_MACH_CRANEBOARD)		+= board-am3517crane.o
