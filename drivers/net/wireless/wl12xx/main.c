@@ -5157,7 +5157,7 @@ static int wl1271_register_hw(struct wl1271 *wl)
 
 	/* if the MAC address is zeroed in the NVS derive from fuse */
 	if ((oui_addr == 0 && nic_addr == 0)
-		|| CONFIG_MACH_PCM049) {
+		|| CONFIG_MACH_PCM049 || CONFIG_MACH_OMAP4_PHENIX) {
 //		|| CONFIG_MACH_KSP5012) {
 		oui_addr = wl->fuse_oui_addr;
 		/* fuse has the BD_ADDR, the WLAN addresses are the next two */

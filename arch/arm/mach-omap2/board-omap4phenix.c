@@ -48,6 +48,9 @@
 
 #include <linux/pwm_backlight.h>
 #include <linux/input/adxl34x.h>
+#ifdef CONFIG_BATTERY_ANDROID
+#include <linux/platform_data/android_battery.h>
+#endif
 
 #include <mach/hardware.h>
 #include <mach/omap-secure.h>
@@ -560,16 +563,66 @@ static struct twl_reg_setup_array omap4460_twl6030_setup[] = {
 
 static struct twl4030_platform_data pcm049_twldata;
 
+#ifdef CONFIG_BATTERY_ANDROID
+
+static void phenix_bat_charge_enable(int enable) {
+	return;
+}
+
+static int phenix_bat_poll_charge_source(void) {
+	/*
+	if (libs_bat->pdata->voltage >= 0x4E20) {
+		return CHARGE_SOURCE_AC;
+	} else {
+		return CHARGE_SOURCE_NONE;
+	}
+	*/
+	return CHARGE_SOURCE_NONE;
+}
+
+static int phenix_bat_get_capacity(void) {
+	return 100;
+}
+
+static int phenix_bat_get_voltage_now(void) {
+	return 16000;
+}
+
+static struct android_bat_platform_data phenix_bat_pdata = {
+	.set_charging_enable = phenix_bat_charge_enable,
+	.poll_charge_source = phenix_bat_poll_charge_source,
+	.get_capacity = phenix_bat_get_capacity,
+	.get_voltage_now = phenix_bat_get_voltage_now,
+	.temp_high_threshold = 50, // dummy value
+	.temp_high_recovery = 75, // dummy value
+	.temp_low_recovery = 10, // dummy value
+	.temp_low_threshold = 20, // dummy value
+	.full_charging_time = 600, // dummy value
+	.recharging_time = 300, // dummy value
+	.recharging_voltage = 24000, // dummy value
+};
+
+static struct platform_device phenix_android_bat_device = {
+	.name = "android-battery",
+	.id = -1,
+	.dev = {
+		.platform_data = &phenix_bat_pdata,
+	},
+};
+
+#endif
+
 static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_3v3_device,
 	&pcm049_vcc_1v8_device,
-//	&omap_vwlan_device,
-//	&omap_vedt_device,
 	&ksp5012_abe_audio_device,
 	&leds_gpio,
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
+#ifdef CONFIG_BATTERY_ANDROID
+	&phenix_android_bat_device,
+#endif
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -615,14 +668,14 @@ static struct adxl34x_platform_data adxl34x_info = {
 	.free_fall_time = 0x20,
 	.data_rate = 0x8,
 	.data_range = ADXL_FULL_RES,
- 
+
 	.ev_type = EV_ABS,
 	.ev_code_x = ABS_X,		/* EV_REL */
 	.ev_code_y = ABS_Y,		/* EV_REL */
 	.ev_code_z = ABS_Z,		/* EV_REL */
- 
+
 	.ev_code_tap = {BTN_0, BTN_1, BTN_2}, /* EV_KEY x,y,z */
- 
+
 /*	.ev_code_ff = KEY_F,*/		/* EV_KEY */
 /*	.ev_code_act_inactivity = KEY_A,*/	/* EV_KEY */
 	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
@@ -650,6 +703,10 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("tmp102_temp_sensor", 0x4B),
 		.platform_data = &tmp102_omap_info,
 	},
+	{
+			I2C_BOARD_INFO("rtc8564", 0x51),
+			.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
+	}
 };
 
 /*
@@ -785,7 +842,7 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(CSI21_DY1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
 	OMAP4_MUX(CSI21_DX2, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
 	OMAP4_MUX(CSI21_DY2, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
-	
+
 	/* CAM (OV5650) PWDN */
 	OMAP4_MUX(ABE_MCBSP2_DR, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
 	/* CAM (OV5650) RESETB */
@@ -1160,79 +1217,9 @@ static inline void __init ksp5012_btwilink_init(void)
 	platform_device_register(&btwilink_device);
 }
 
-#if defined(CONFIG_TI_EMIF) || defined(CONFIG_TI_EMIF_MODULE)
-static struct __devinitdata emif_custom_configs custom_configs = {
-	.mask   = EMIF_CUSTOM_CONFIG_LPMODE,
-	.lpmode = EMIF_LP_MODE_SELF_REFRESH,
-	.lpmode_timeout_performance = 512,
-	.lpmode_timeout_power = 512,
-	/* only at OPP100 should we use performance value */
-	.lpmode_freq_threshold = 400000000,
-};
-#endif
-
-static void __init emif_setup_device_details(unsigned long base)
-{
-	unsigned long cs1_used;
-	unsigned char *emif;
-
-	emif = ioremap(base, SZ_256);
-
-	cs1_used = (readl(emif + EMIF_SDRAM_CONFIG) & EBANK_MASK)
-		>> EBANK_SHIFT;
-
-	if (memblock_phys_mem_size() > SZ_512M) {
-		if (cs1_used) {
-			omap_emif_set_device_details(1,
-				&lpddr2_nanya_8G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-			omap_emif_set_device_details(2,
-				&lpddr2_nanya_8G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-			printk(KERN_INFO "%s: "
-				"registered Nanya LPDDR_S4 1GB RAM with 2 CS\n",
-				__func__);
-		} else {
-			omap_emif_set_device_details(1,
-				&lpddr2_nanya_8G_S4_x2_1CS_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-			omap_emif_set_device_details(2,
-				&lpddr2_nanya_8G_S4_x2_1CS_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-			printk(KERN_INFO "%s: "
-				"registered Nanya LPDDR_S4 1GB RAM with 1 CS\n",
-				__func__);
-		}
-	} else {
-		omap_emif_set_device_details(1, &lpddr2_nanya_4G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-		omap_emif_set_device_details(2, &lpddr2_nanya_4G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-		printk(KERN_INFO
-			"%s: registered Nanya LPDDR_S4 512MB RAM\n", __func__);
-	}
-}
-
 static void __init pcm049_init(void)
 {
 	int status;
-
-	//emif_setup_device_details(0x4C000000);
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 

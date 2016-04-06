@@ -162,9 +162,9 @@ void __init omap_pmic_late_init(void)
 	/* this should not be here as it hardcodes what is on the i2c1
 	   bus -- something that can vary from board to board. */
 	/* Init the OMAP TWL parameters (if PMIC has been registerd) */
-	if (!pmic_i2c_board_info.irq && !omap4_i2c1_board_info[0].irq &&
-	    !omap5_i2c1_generic_info[0].irq)
-		return;
+	//if (!pmic_i2c_board_info.irq && !omap4_i2c1_board_info[0].irq &&
+	//    !omap5_i2c1_generic_info[0].irq)
+	//	return;
 #endif
 	omap_twl_init();
 	omap_tps6236x_init();
