@@ -184,6 +184,7 @@ static inline void __arch_decomp_setup(unsigned long arch_id)
 		DEBUG_LL_OMAP4(3, omap_tabletblaze);
 		DEBUG_LL_OMAP4(3, omap4_panda);
 		DEBUG_LL_OMAP4(3, pcm049);
+		DEBUG_LL_OMAP4(3, omap4_phenix);
 
 #ifdef CONFIG_MACH_OMAP_5430ZEBU
 		/* omap5 based boards using UART1 */
