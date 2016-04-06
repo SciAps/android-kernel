@@ -62,6 +62,11 @@ config TEST_POWER
 	help
 	  This driver is used for testing. It's safe to say M here.
 
+config BATTERY_ND2054
+	tristate "ND2054 battery pair"
+	help
+	  Say Y to enable support for two Inspired Energy batteries
+
 config BATTERY_DS2760
 	tristate "DS2760 battery driver (HP iPAQ & others)"
 	depends on W1 && W1_SLAVE_DS2760
@@ -120,6 +125,11 @@ config FUEL_GAUGE
 	  estimates SOC, FCC, and other battery parameters, and reports them
 	  through sysfs interface. The Fuel Gauge works best with a single cell
 	  lithium battery.
+
+config CHARGER_LTC1760
+	tristate "LTC1760 battery charger"
+	help
+	  Say Y to enable support for LTC dual smart battery charger
 
 config CHARGER_BQ2415x
 	tristate "BQ2415x charger"
@@ -224,17 +234,6 @@ config BATTERY_ANDROID
 	  kernel log reporting and other debugging features, common board
 	  battery file glue logic for battery/case temperature sensors,
 	  etc.
-
-config BATTERY_LIBS
-	tristate "Sciaps LIBs Battery Workaround"
-	depends on BATTERY_ANDROID && MACH_PCM049
-	default n
-	help
-	  Say Y to enable sysfs support for Sciaps' LIBs
-	  Battery Workaround.
-
-	  If unsure, say N.
-
 
 config BATTERY_Z2
 	tristate "Z2 battery driver"

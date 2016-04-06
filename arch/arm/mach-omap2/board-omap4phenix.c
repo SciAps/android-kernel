@@ -706,7 +706,17 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	{
 			I2C_BOARD_INFO("rtc8564", 0x51),
 			.irq = OMAP_GPIO_IRQ(KSP5012_RTC_IRQ),
-	}
+	},
+#ifdef CONFIG_CHARGER_LTC1760
+	{
+		I2C_BOARD_INFO("ltc1760", 0x0A), // 8-bit format: 0x14
+	},
+#endif
+#ifdef CONFIG_BATTERY_ND2054
+	{
+		I2C_BOARD_INFO("nd2054", 0x0B), // 8-biit format: 0x16
+	},
+#endif
 };
 
 /*
