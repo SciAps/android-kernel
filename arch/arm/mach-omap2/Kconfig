@@ -404,14 +404,9 @@ config MACH_PCM049
 	select WIRELESS_EXT if CFG80211
 
 config MACH_OMAP4_PHENIX
-	bool "Sciaps Phenix"
+	bool "Sciaps Phenix board"
 	default y
-	depends on ARCH_OMAP4
-	select OMAP_PACKAGE_CBL
-	select OMAP_PACKAGE_CBS
-	select REGULATOR_FIXED_VOLTAGE
-	select OMAP_TPS6236X
-	select WIRELESS_EXT if CFG80211
+	depends on MACH_PCM049
 
 config MACH_OMAP5_SEVM
 	bool "OMAP5 EVM board"

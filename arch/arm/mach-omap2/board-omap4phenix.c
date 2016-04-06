@@ -1296,7 +1296,7 @@ static void __init ksp5012_init_early(void)
 		omap_tps6236x_gpio_no_reset_wa(TPS62361_GPIO, -1, 32);
 }
 
-MACHINE_START(OMAP4_PHENIX, "sciaps phenix")
+MACHINE_START(PCM049, "pcm049")
 	/* Maintainer: Jan Weitzel - Phytec Messtechnik GmbH */
 	.atag_offset	= 0x100,
 	.reserve	= pcm049_reserve,
