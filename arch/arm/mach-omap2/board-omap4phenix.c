@@ -51,6 +51,9 @@
 #ifdef CONFIG_BATTERY_ANDROID
 #include <linux/platform_data/android_battery.h>
 #endif
+#ifdef CONFIG_BATTERY_SBS
+#include <linux/power/sbs-battery.h>
+#endif
 
 #include <mach/hardware.h>
 #include <mach/omap-secure.h>
@@ -563,47 +566,14 @@ static struct twl_reg_setup_array omap4460_twl6030_setup[] = {
 
 static struct twl4030_platform_data pcm049_twldata;
 
-#ifdef CONFIG_BATTERY_ANDROID
+#ifdef CONFIG_BATTERY_SBS
 
-static void phenix_bat_charge_enable(int enable) {
-	return;
-}
-
-static int phenix_bat_poll_charge_source(void) {
-	/*
-	if (libs_bat->pdata->voltage >= 0x4E20) {
-		return CHARGE_SOURCE_AC;
-	} else {
-		return CHARGE_SOURCE_NONE;
-	}
-	*/
-	return CHARGE_SOURCE_NONE;
-}
-
-static int phenix_bat_get_capacity(void) {
-	return 100;
-}
-
-static int phenix_bat_get_voltage_now(void) {
-	return 16000;
-}
-
-static struct android_bat_platform_data phenix_bat_pdata = {
-	.set_charging_enable = phenix_bat_charge_enable,
-	.poll_charge_source = phenix_bat_poll_charge_source,
-	.get_capacity = phenix_bat_get_capacity,
-	.get_voltage_now = phenix_bat_get_voltage_now,
-	.temp_high_threshold = 50, // dummy value
-	.temp_high_recovery = 75, // dummy value
-	.temp_low_recovery = 10, // dummy value
-	.temp_low_threshold = 20, // dummy value
-	.full_charging_time = 600, // dummy value
-	.recharging_time = 300, // dummy value
-	.recharging_voltage = 24000, // dummy value
+static struct sbs_platform_data phenix_bat_pdata = {
+	.battery_detect = -1
 };
 
-static struct platform_device phenix_android_bat_device = {
-	.name = "android-battery",
+static struct platform_device phenix_bat_device = {
+	.name = "nd2054",
 	.id = -1,
 	.dev = {
 		.platform_data = &phenix_bat_pdata,
@@ -620,8 +590,8 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
-#ifdef CONFIG_BATTERY_ANDROID
-	&phenix_android_bat_device,
+#ifdef CONFIG_BATTERY_SBS
+	&phenix_bat_device,
 #endif
 };
 
@@ -712,9 +682,10 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("ltc1760", 0x0A), // 8-bit format: 0x14
 	},
 #endif
-#ifdef CONFIG_BATTERY_ND2054
+#ifdef CONFIG_BATTERY_SBS
 	{
-		I2C_BOARD_INFO("nd2054", 0x0B), // 8-biit format: 0x16
+		I2C_BOARD_INFO("sbs-battery", 0x0B), // 8-biit format: 0x16
+		.platform_data = &phenix_bat_pdata,
 	},
 #endif
 };
