@@ -563,54 +563,7 @@ static struct twl_reg_setup_array omap4460_twl6030_setup[] = {
 
 static struct twl4030_platform_data pcm049_twldata;
 
-#ifdef CONFIG_BATTERY_ANDROID
 
-static void phenix_bat_charge_enable(int enable) {
-	return;
-}
-
-static int phenix_bat_poll_charge_source(void) {
-	/*
-	if (libs_bat->pdata->voltage >= 0x4E20) {
-		return CHARGE_SOURCE_AC;
-	} else {
-		return CHARGE_SOURCE_NONE;
-	}
-	*/
-	return CHARGE_SOURCE_NONE;
-}
-
-static int phenix_bat_get_capacity(void) {
-	return 100;
-}
-
-static int phenix_bat_get_voltage_now(void) {
-	return 16000;
-}
-
-static struct android_bat_platform_data phenix_bat_pdata = {
-	.set_charging_enable = phenix_bat_charge_enable,
-	.poll_charge_source = phenix_bat_poll_charge_source,
-	.get_capacity = phenix_bat_get_capacity,
-	.get_voltage_now = phenix_bat_get_voltage_now,
-	.temp_high_threshold = 50, // dummy value
-	.temp_high_recovery = 75, // dummy value
-	.temp_low_recovery = 10, // dummy value
-	.temp_low_threshold = 20, // dummy value
-	.full_charging_time = 600, // dummy value
-	.recharging_time = 300, // dummy value
-	.recharging_voltage = 24000, // dummy value
-};
-
-static struct platform_device phenix_android_bat_device = {
-	.name = "android-battery",
-	.id = -1,
-	.dev = {
-		.platform_data = &phenix_bat_pdata,
-	},
-};
-
-#endif
 
 static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_3v3_device,
@@ -620,9 +573,6 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
-#ifdef CONFIG_BATTERY_ANDROID
-	&phenix_android_bat_device,
-#endif
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -712,9 +662,9 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("ltc1760", 0x0A), // 8-bit format: 0x14
 	},
 #endif
-#ifdef CONFIG_BATTERY_ND2054
+#ifdef CONFIG_BATTERY_SMBUS
 	{
-		I2C_BOARD_INFO("nd2054", 0x0B), // 8-biit format: 0x16
+		I2C_BOARD_INFO("smbus-battery", 0x0B), // 8-biit format: 0x16
 	},
 #endif
 };
