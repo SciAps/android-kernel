@@ -966,6 +966,14 @@ config MFD_PALMAS_POWEROFF
 	  If you say yes here you get support for switching off with
 	  Palmas series of PMIC chips from Texas Instruments.
 
+config MFD_SCIAPS_MICRO
+	tristate "Sciaps Power Board Micro"
+	depends on I2C
+	default n
+	help
+		Say Y here to enable support for Sciaps Power Board
+		PIC16F1527 functionality
+
 config MFD_LIBS_PWR
 	tristate "Sciaps LIBs Power Board Micro"
 	depends on I2C && MACH_PCM049

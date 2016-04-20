@@ -667,6 +667,11 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("smbus-battery", 0x0B), // 8-biit format: 0x16
 	},
 #endif
+#ifdef CONFIG_MFD_SCIAPS_MICRO
+	{
+		I2C_BOARD_INFO("sciaps_micro", 0x59),
+	},
+#endif
 };
 
 /*
