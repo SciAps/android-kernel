@@ -278,12 +278,11 @@ obj-$(CONFIG_MACH_OMAP_BLAZE)		+= board-44xx-tablet.o \
 
 obj-$(CONFIG_MACH_OMAP4_PANDA)		+= board-omap4panda.o
 
-#obj-$(CONFIG_MACH_PCM049)		+= board-omap4pcm049.o
-obj-$(CONFIG_MACH_PCM049)		+= \
-					   board-44xx-serial.o
+obj-$(CONFIG_MACH_PCM049)		+= board-44xx-serial.o
 
-obj-$(CONFIG_MACH_OMAP4_PHENIX)	+= \
-						 board-omap4phenix.o 
+obj-$(CONFIG_MACH_OMAP4_PHENIX)	+= board-omap4phenix.o
+
+obj-$(CONFIG_MACH_OMAP4_LIBZ300) += board-omap4libz300.o
 
 obj-$(CONFIG_MACH_OMAP3517EVM)		+= board-am3517evm.o
 

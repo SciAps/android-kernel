@@ -564,8 +564,6 @@ static struct twl4030_platform_data pcm049_twldata;
 static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_3v3_device,
 	&pcm049_vcc_1v8_device,
-//	&omap_vwlan_device,
-//	&omap_vedt_device,
 	&ksp5012_abe_audio_device,
 	&leds_gpio,
 	&ksp5012_gpio_keys_device,
@@ -1161,79 +1159,9 @@ static inline void __init ksp5012_btwilink_init(void)
 	platform_device_register(&btwilink_device);
 }
 
-#if defined(CONFIG_TI_EMIF) || defined(CONFIG_TI_EMIF_MODULE)
-static struct __devinitdata emif_custom_configs custom_configs = {
-	.mask   = EMIF_CUSTOM_CONFIG_LPMODE,
-	.lpmode = EMIF_LP_MODE_SELF_REFRESH,
-	.lpmode_timeout_performance = 512,
-	.lpmode_timeout_power = 512,
-	/* only at OPP100 should we use performance value */
-	.lpmode_freq_threshold = 400000000,
-};
-#endif
-
-static void __init emif_setup_device_details(unsigned long base)
-{
-	unsigned long cs1_used;
-	unsigned char *emif;
-
-	emif = ioremap(base, SZ_256);
-
-	cs1_used = (readl(emif + EMIF_SDRAM_CONFIG) & EBANK_MASK)
-		>> EBANK_SHIFT;
-
-	if (memblock_phys_mem_size() > SZ_512M) {
-		if (cs1_used) {
-			omap_emif_set_device_details(1,
-				&lpddr2_nanya_8G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-			omap_emif_set_device_details(2,
-				&lpddr2_nanya_8G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-			printk(KERN_INFO "%s: "
-				"registered Nanya LPDDR_S4 1GB RAM with 2 CS\n",
-				__func__);
-		} else {
-			omap_emif_set_device_details(1,
-				&lpddr2_nanya_8G_S4_x2_1CS_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-			omap_emif_set_device_details(2,
-				&lpddr2_nanya_8G_S4_x2_1CS_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-			printk(KERN_INFO "%s: "
-				"registered Nanya LPDDR_S4 1GB RAM with 1 CS\n",
-				__func__);
-		}
-	} else {
-		omap_emif_set_device_details(1, &lpddr2_nanya_4G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-
-		omap_emif_set_device_details(2, &lpddr2_nanya_4G_S4_x2_info,
-				lpddr2_elpida_2G_S4_timings,
-				ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
-				&lpddr2_elpida_S4_min_tck, &custom_configs);
-		printk(KERN_INFO
-			"%s: registered Nanya LPDDR_S4 512MB RAM\n", __func__);
-	}
-}
-
 static void __init pcm049_init(void)
 {
 	int status;
-
-	//emif_setup_device_details(0x4C000000);
 
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
 
