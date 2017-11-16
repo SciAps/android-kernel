@@ -882,8 +882,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(DPM_EMU18, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 	/* dispc2_data0 */
 	OMAP4_MUX(DPM_EMU19, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
-	/* dmtimer9_pwm_evt */
-	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
+	/* LCD Backlight GPIO for Splash */
+	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE3),
 #endif	/* ifdef CONFIG_OMAP2_DSS_DPI */
 	OMAP4_MUX(SYS_NIRQ1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP |
 				OMAP_PIN_OFF_WAKEUPENABLE),
@@ -1243,6 +1243,9 @@ static void __init pcm049_init(void)
 
 	pcm049_i2c_init();
 	omap4_board_serial_init();
+
+	pcm049_display_init();
+
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
 	pcm049_init_smsc911x();
@@ -1255,7 +1258,6 @@ static void __init pcm049_init(void)
 	omap_init_dmm_tiler();
 	omap4_register_ion();
 	omap_die_governor_register_pdata(&omap_gov_pdata);
-	pcm049_display_init();
 	pcm049_init_nand();
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)

@@ -802,5 +802,10 @@ static void dsscomp_kdump(void)
 EXPORT_SYMBOL(dsscomp_kdump);
 
 MODULE_LICENSE("GPL v2");
+
+#ifdef CONFIG_DSSCOMP_MODULE
 module_init(dsscomp_init);
 module_exit(dsscomp_exit);
+#else
+fs_initcall(dsscomp_init);
+#endif

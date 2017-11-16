@@ -3617,9 +3617,9 @@ static int __init fb_console_init(void)
 	return 0;
 }
 
-module_init(fb_console_init);
 
 #ifdef MODULE
+module_init(fb_console_init);
 
 static void __exit fbcon_deinit_device(void)
 {
@@ -3645,7 +3645,8 @@ static void __exit fb_console_exit(void)
 }	
 
 module_exit(fb_console_exit);
-
+#else
+fs_initcall(fb_console_init);
 #endif
 
 MODULE_LICENSE("GPL");

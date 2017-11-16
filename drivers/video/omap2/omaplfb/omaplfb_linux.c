@@ -1139,6 +1139,6 @@ static void __exit OMAPLFB_Cleanup(void)
 }
 
 #if !defined(SUPPORT_DRI_DRM)
-late_initcall(OMAPLFB_Init);
+device_initcall(OMAPLFB_Init);
 module_exit(OMAPLFB_Cleanup);
 #endif

@@ -714,6 +714,11 @@ static void __exit generic_dpi_panel_drv_exit(void)
 }
 
 module_param_named(name, def_panel_name, charp, 0);
+#ifdef CONFIG_PANEL_GENERIC_DPI_MODULE
 module_init(generic_dpi_panel_drv_init);
 module_exit(generic_dpi_panel_drv_exit);
+#else
+fs_initcall(generic_dpi_panel_drv_init);
+#endif
+
 MODULE_LICENSE("GPL");
