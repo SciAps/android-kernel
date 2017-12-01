@@ -21,6 +21,10 @@
 #include <asm/bootinfo.h>
 #endif
 
+#ifdef CONFIG_LOGO_SCIAPS_CLUT224
+extern const struct linux_logo logo_sciaps_clut224;
+#endif
+
 static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
@@ -46,7 +50,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_superh_mono;
 #endif
 	}
-	
+
 	if (depth >= 4) {
 #ifdef CONFIG_LOGO_LINUX_VGA16
 		/* Generic Linux logo */
@@ -61,7 +65,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_superh_vga16;
 #endif
 	}
-	
+
 	if (depth >= 8) {
 #ifdef CONFIG_LOGO_LINUX_CLUT224
 		/* Generic Linux logo */
@@ -99,6 +103,10 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 #ifdef CONFIG_LOGO_M32R_CLUT224
 		/* M32R Linux logo */
 		logo = &logo_m32r_clut224;
+#endif
+#ifdef CONFIG_LOGO_SCIAPS_CLUT224
+		/* Sciaps Linux logo */
+		logo = &logo_sciaps_clut224;
 #endif
 	}
 	return logo;
