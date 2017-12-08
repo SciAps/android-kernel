@@ -632,6 +632,13 @@ static int libs_delete_sysfs(struct i2c_client *client)
 static int libs_pwr_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
+#if defined(CONFIG_BATTERY_LIBS)
+	dev_info(&client->dev, "Delaying battery driver because we are on LIBZ\n");
+	usleep_range(100000, 200000);
+#endif
+
+	dev_info(&client->dev, "Battery Driver probe\n");
+
 	struct libs_pwr_data *libs_pwr;
 
 	libs_pwr = kzalloc(sizeof(struct libs_pwr_data), GFP_KERNEL);
