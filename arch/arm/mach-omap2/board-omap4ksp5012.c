@@ -111,36 +111,12 @@
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
-#define GPIO_POWER_BUTTON		139
+
+#define GPIO_FPGA_RESET		140
 
 #define EMIF_SDRAM_CONFIG		0x0008
 #define EBANK_SHIFT			3
 #define EBANK_MASK			(1 << 3)
-
-static struct gpio_keys_button ksp5012_gpio_keys[] = {
-	{
-		.desc			= "power_button",
-		.type 			= EV_KEY,
-		.code			= KEY_POWER,
-		.gpio			= GPIO_POWER_BUTTON,
-		.active_low		= 1,
-		.wakeup			= 1,
-		.debounce_interval	= 5,
-	},
-};
-
-static struct gpio_keys_platform_data ksp5012_gpio_keys_data = {
-	.buttons	= ksp5012_gpio_keys,
-	.nbuttons	= ARRAY_SIZE(ksp5012_gpio_keys),
-};
-
-static struct platform_device ksp5012_gpio_keys_device = {
-	.name	= "gpio-keys",
-	.id = -1,
-	.dev	= {
-		.platform_data	= &ksp5012_gpio_keys_data,
-	},
-};
 
 static struct gpio_led gpio_leds[] = {
 	{
@@ -567,7 +543,6 @@ static struct platform_device *pcm049_devices[] __initdata = {
 //	&omap_vedt_device,
 	&ksp5012_abe_audio_device,
 	&leds_gpio,
-	&ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
 };
@@ -615,14 +590,14 @@ static struct adxl34x_platform_data adxl34x_info = {
 	.free_fall_time = 0x20,
 	.data_rate = 0x8,
 	.data_range = ADXL_FULL_RES,
- 
+
 	.ev_type = EV_ABS,
 	.ev_code_x = ABS_X,		/* EV_REL */
 	.ev_code_y = ABS_Y,		/* EV_REL */
 	.ev_code_z = ABS_Z,		/* EV_REL */
- 
+
 	.ev_code_tap = {BTN_0, BTN_1, BTN_2}, /* EV_KEY x,y,z */
- 
+
 /*	.ev_code_ff = KEY_F,*/		/* EV_KEY */
 /*	.ev_code_act_inactivity = KEY_A,*/	/* EV_KEY */
 	.power_mode = ADXL_AUTO_SLEEP | ADXL_LINK,
@@ -785,7 +760,7 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(CSI21_DY1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
 	OMAP4_MUX(CSI21_DX2, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
 	OMAP4_MUX(CSI21_DY2, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
-	
+
 	/* CAM (OV5650) PWDN */
 	OMAP4_MUX(ABE_MCBSP2_DR, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
 	/* CAM (OV5650) RESETB */
@@ -804,8 +779,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(ABE_MCBSP1_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_114
 	OMAP4_MUX(ABE_MCBSP1_DR, OMAP_MUX_MODE3 | OMAP_PIN_INPUT), // GPIO_115
 
-	/* Wake signal */
-	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
+	/* Raman LD_I_DAC_EN_L */
+	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), //GPIO_139
 	OMAP4_MUX(ABE_CLKS, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_118
 
 	/* GPS ON-OFF */
@@ -881,8 +856,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(DPM_EMU18, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 	/* dispc2_data0 */
 	OMAP4_MUX(DPM_EMU19, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
-	/* dmtimer9_pwm_evt */
-	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
+	/* LCD Backlight GPIO for Splash */
+	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE3),
 #endif	/* ifdef CONFIG_OMAP2_DSS_DPI */
 	OMAP4_MUX(SYS_NIRQ1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP |
 				OMAP_PIN_OFF_WAKEUPENABLE),
@@ -1242,6 +1217,9 @@ static void __init pcm049_init(void)
 
 	pcm049_i2c_init();
 	omap4_board_serial_init();
+
+	pcm049_display_init();
+
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
 	pcm049_init_smsc911x();
@@ -1254,7 +1232,6 @@ static void __init pcm049_init(void)
 	omap_init_dmm_tiler();
 	omap4_register_ion();
 	omap_die_governor_register_pdata(&omap_gov_pdata);
-	pcm049_display_init();
 	pcm049_init_nand();
 
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
