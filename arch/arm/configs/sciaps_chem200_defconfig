@@ -1726,8 +1726,8 @@ CONFIG_SPI_MASTER=y
 # SPI Master Controller Drivers
 #
 # CONFIG_SPI_ALTERA is not set
-CONFIG_SPI_BITBANG=y
-CONFIG_SPI_GPIO=y
+# CONFIG_SPI_BITBANG is not set
+# CONFIG_SPI_GPIO is not set
 # CONFIG_SPI_OC_TINY is not set
 CONFIG_SPI_OMAP24XX=y
 # CONFIG_SPI_PXA2XX_PCI is not set
@@ -1737,7 +1737,7 @@ CONFIG_SPI_OMAP24XX=y
 #
 # SPI Protocol Masters
 #
-# CONFIG_SPI_SPIDEV is not set
+CONFIG_SPI_SPIDEV=y
 # CONFIG_SPI_TLE62X0 is not set
 # CONFIG_HSI is not set
 

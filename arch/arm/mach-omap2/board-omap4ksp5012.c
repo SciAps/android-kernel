@@ -23,6 +23,7 @@
 #include <linux/leds.h>
 #include <linux/gpio.h>
 #include <linux/omapfb.h>
+#include <linux/spi/spi.h>
 #include <linux/usb/otg.h>
 #include <linux/hwspinlock.h>
 #include <linux/i2c/twl.h>
@@ -108,6 +109,7 @@
 #define KSP5012_ADXL34X_IRQ2		176
 #define KSP5012_ADXL34X_IRQ		KSP5012_ADXL34X_IRQ1
 #define KSP5012_USBB1_PWR		101
+#define KSP5014_CPLD_IRQ        140
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
@@ -117,6 +119,17 @@
 #define EMIF_SDRAM_CONFIG		0x0008
 #define EBANK_SHIFT			3
 #define EBANK_MASK			(1 << 3)
+
+static struct spi_board_info ksp5014_spi_board_info[] __initdata = {
+    {
+        /* CPLD on KSP5014 */
+        .modalias               = "spidev",
+        .bus_num                = 1,
+        .chip_select            = 0,
+        .irq            = OMAP_GPIO_IRQ(KSP5014_CPLD_IRQ),
+        .max_speed_hz           = 24000000,
+    },
+};
 
 static struct gpio_led gpio_leds[] = {
 	{
@@ -783,6 +796,10 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), //GPIO_139
 	OMAP4_MUX(ABE_CLKS, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_118
 
+    /* sgowen - I don't think we need this */
+    /* CPLD Interrupt */
+    //OMAP4_MUX(MCSPI1_CS3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_140
+    
 	/* GPS ON-OFF */
 	OMAP4_MUX(UNIPRO_TY0, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_172
 	/* GPS RESET */
@@ -799,6 +816,13 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(SDMMC5_DAT1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP),
 	OMAP4_MUX(SDMMC5_DAT2, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP),
 	OMAP4_MUX(SDMMC5_DAT3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP),
+    
+    /* MCSPI1 for CPLD SPI */
+    OMAP4_MUX(MCSPI1_CLK,  OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
+    OMAP4_MUX(MCSPI1_SOMI, OMAP_MUX_MODE0 | OMAP_PIN_INPUT),
+    OMAP4_MUX(MCSPI1_SIMO, OMAP_MUX_MODE0 | OMAP_PIN_OUTPUT),
+    OMAP4_MUX(MCSPI1_CS0,  OMAP_MUX_MODE0 | OMAP_PIN_OUTPUT),
+    
 #ifdef CONFIG_OMAP2_DSS_DPI
 	/* dispc2_data23 */
 	OMAP4_MUX(USBB2_ULPITLL_STP, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
@@ -1238,6 +1262,8 @@ static void __init pcm049_init(void)
 	pcm049_wl12xx_init();
 	ksp5012_btwilink_init();
 #endif
+    
+    spi_register_board_info(ksp5014_spi_board_info, ARRAY_SIZE(ksp5014_spi_board_info));
 
 	if (cpu_is_omap446x()) {
 		/* Vsel0 = gpio, vsel1 = gnd */
