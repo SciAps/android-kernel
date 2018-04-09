@@ -137,8 +137,8 @@ static struct omap_uart_port_info uart3_info __initdata = {
 };
 
 static struct omap_uart_port_info uart4_info __initdata = {
-	.dma_enabled = 1,
-	.dma_rx_buf_size = 16384,
+	.dma_enabled = 0,
+	.dma_rx_buf_size = 4096,
 	.dma_rx_poll_rate = 1,
 	.dma_rx_timeout = 3 * HZ,
 	.autosuspend_timeout = DEFAULT_UART_AUTOSUSPEND_DELAY,
