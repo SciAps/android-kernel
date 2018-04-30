@@ -800,7 +800,7 @@ static struct omap_board_mux board_mux[] __initdata = {
     
     /* sgowen - I don't think we need this */
     /* CPLD Interrupt */
-    OMAP4_MUX(MCSPI1_CS3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_140
+    //OMAP4_MUX(MCSPI1_CS3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_140
     
 	/* GPS ON-OFF */
 	OMAP4_MUX(UNIPRO_TY0, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_172
