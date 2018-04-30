@@ -113,12 +113,13 @@
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
-
+#define GPIO_POWER_BUTTON   139
 #define GPIO_FPGA_RESET		140
 
 #define EMIF_SDRAM_CONFIG		0x0008
 #define EBANK_SHIFT			3
 #define EBANK_MASK			(1 << 3)
+
 
 static struct spi_board_info ksp5014_spi_board_info[] __initdata = {
     {
@@ -128,6 +129,31 @@ static struct spi_board_info ksp5014_spi_board_info[] __initdata = {
         .chip_select            = 0,
         .irq            = OMAP_GPIO_IRQ(KSP5014_CPLD_IRQ),
         .max_speed_hz           = 24000000,
+    },
+};
+
+static struct gpio_keys_button ksp5012_gpio_keys[] = {
+    {
+        .desc            = "power_button",
+        .type             = EV_KEY,
+        .code            = KEY_POWER,
+        .gpio            = GPIO_POWER_BUTTON,
+        .active_low        = 1,
+        .wakeup            = 1,
+        .debounce_interval    = 5,
+    },
+};
+
+static struct gpio_keys_platform_data ksp5012_gpio_keys_data = {
+    .buttons    = ksp5012_gpio_keys,
+    .nbuttons    = ARRAY_SIZE(ksp5012_gpio_keys),
+};
+
+static struct platform_device ksp5012_gpio_keys_device = {
+    .name    = "gpio-keys",
+    .id = -1,
+    .dev    = {
+        .platform_data    = &ksp5012_gpio_keys_data,
     },
 };
 
@@ -556,6 +582,7 @@ static struct platform_device *pcm049_devices[] __initdata = {
 //	&omap_vedt_device,
 	&ksp5012_abe_audio_device,
 	&leds_gpio,
+    &ksp5012_gpio_keys_device,
 	&pwm_device,
 	&ksp5012_backlight_device,
 };
@@ -792,13 +819,10 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(ABE_MCBSP1_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_114
 	OMAP4_MUX(ABE_MCBSP1_DR, OMAP_MUX_MODE3 | OMAP_PIN_INPUT), // GPIO_115
 
-    /* Wake signal and Raman LD_I_DAC_EN_L*/
+    /* Wake signal */
     OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
 	OMAP4_MUX(ABE_CLKS, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_118
-
-    OMAP4_MUX(MCSPI1_CS1, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_138
     
-    /* sgowen - I don't think we need this */
     /* CPLD Interrupt */
     OMAP4_MUX(MCSPI1_CS3, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_140
     
@@ -1285,8 +1309,6 @@ static void __init pcm049_init(void)
 	if (gpio_request(153, "LED_153") == 0)
 		gpio_direction_output(153, 0);
 #endif
-    
-    gpio_direction_output(138, 0);
 
 	omap_enable_smartreflex_on_init();
 }
