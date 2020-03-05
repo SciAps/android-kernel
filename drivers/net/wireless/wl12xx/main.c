@@ -53,6 +53,13 @@
 
 #define WL1271_BOOT_RETRIES 3
 
+#if (defined(CONFIG_MACH_PCM049) || defined(CONFIG_MACH_OMAP4_PHENIX) \
+	|| defined(CONFIG_MACH_KSP5012))
+static const int wl12xx_enabled = 1;
+#else
+static const int wl12xx_enabled = 0;
+#endif
+
 static struct conf_drv_settings default_conf = {
 	.sg = {
 		.params = {
@@ -5156,9 +5163,7 @@ static int wl1271_register_hw(struct wl1271 *wl)
 	}
 
 	/* if the MAC address is zeroed in the NVS derive from fuse */
-	if ((oui_addr == 0 && nic_addr == 0)
-		|| CONFIG_MACH_PCM049 || CONFIG_MACH_OMAP4_PHENIX) {
-//		|| CONFIG_MACH_KSP5012) {
+	if ((oui_addr == 0 && nic_addr == 0) || wl12xx_enabled) {
 		oui_addr = wl->fuse_oui_addr;
 		/* fuse has the BD_ADDR, the WLAN addresses are the next two */
 		nic_addr = wl->fuse_nic_addr + 1;
