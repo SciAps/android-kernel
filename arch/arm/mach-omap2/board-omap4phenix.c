@@ -36,6 +36,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/fixed.h>
 #include <linux/wl12xx.h>
+#include <linux/brcmfmac.h>
 #include <linux/memblock.h>
 #include <linux/mtd/nand.h>
 #include <linux/smsc911x.h>
@@ -88,6 +89,7 @@
 #include <linux/skbuff.h>
 #include <linux/ti_wilink_st.h>
 #include <linux/wakelock.h>
+#include "linux/bcm-lwb-rfkill.h"
 
 #include "common.h"
 #include "omap4_ion.h"
@@ -99,6 +101,12 @@
 #include "common-board-devices.h"
 #include "prm-regbits-44xx.h"
 #include "prm44xx.h"
+
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+#undef CONFIG_WL12XX_PLATFORM_DATA
+#undef CONFIG_WL12XX
+#undef CONFIG_WL12XX_MODULE
+#endif
 
 #define KSP5012_ETH_GPIO_IRQ		121
 #define KSP5012_ETH_CS			5
@@ -114,6 +122,7 @@
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define GPIO_WL_EN			106
 #define GPIO_BT_EN			173
+#define GPIO_BT_DEV_WAKE	0
 #define GPIO_POWER_BUTTON		139
 
 #define EMIF_SDRAM_CONFIG		0x0008
@@ -342,9 +351,9 @@ static struct regulator_init_data pcm049_vmmc5 = {
 };
 static struct fixed_voltage_config pcm049_vwlan = {
 	.supply_name			= "vwl1271",
-	.microvolts			= 1800000, /* 1.8V */
+	.microvolts				= 1800000, /* 1.8V */
 	.startup_delay			= 70000, /* 70msec */
-	.gpio				= GPIO_WL_EN,
+	.gpio					= GPIO_WL_EN,
 	.enable_high			= 1,
 	.enabled_at_boot		= 0,
 	.init_data = &pcm049_vmmc5,
@@ -373,6 +382,82 @@ static void pcm049_wl1271_init_card(struct mmc_card *card)
 
 #endif	// if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+#undef LWB_USE_FIXED_REGULATOR
+#ifdef LWB_USE_FIXED_REGULATOR
+static struct regulator_consumer_supply pcm049_vmmc5_supply = {
+	.supply = "vmmc",
+	.dev_name = "omap_hsmmc.4",
+};
+
+static struct regulator_init_data pcm049_vmmc5 = {
+        .constraints = {
+                .valid_ops_mask = REGULATOR_CHANGE_STATUS,
+        },
+        .num_consumer_supplies = 1,
+        .consumer_supplies = &pcm049_vmmc5_supply,
+};
+
+static struct fixed_voltage_config pcm049_vwlan = {
+	.supply_name		= "vbrcmfmac",
+	.microvolts			= 1800000, /* 1.8V */
+	.startup_delay		= 70000, /* 70msec */
+	.gpio				= GPIO_WL_EN,
+	.enable_high		= 1,
+	.enabled_at_boot	= 1,
+	.init_data			= &pcm049_vmmc5,
+};
+
+static struct platform_device omap_vwlan_device = {
+	.name		= "reg-fixed-voltage",
+	.id		= ARRAY_SIZE(pcm049_vcc_3v3_consumer_supply)
+				+ ARRAY_SIZE(pcm049_vcc_1v8_consumer_supply),
+	.dev = {
+		.platform_data = &pcm049_vwlan,
+	},
+};
+#endif // if LWB_USE_FIXED_REGULATOR
+
+void lwb_power_on(void)
+{
+    if (gpio_is_valid(GPIO_WL_EN)) {
+        gpio_set_value(GPIO_WL_EN, 1);
+    }
+}
+
+void lwb_power_off(void)
+{
+    if (gpio_is_valid(GPIO_WL_EN)) {
+        gpio_set_value(GPIO_WL_EN, 0);
+    }
+}
+
+static struct brcmfmac_platform_data brcmfmac_platform_data  __initdata = {
+	.power_on	= lwb_power_on,
+	.power_off	= lwb_power_off,
+	.fw_alternative_path = NULL,
+};
+
+
+static struct platform_device brcmfmac_platform_device = {
+	.name		= "brcmfmac",
+	.id = -1,
+	.dev = {
+		.platform_data = &brcmfmac_platform_data,
+	},
+};
+
+#endif	// if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+static void pcm049_lwb_init_card(struct mmc_card *card)
+{
+    printk(KERN_WARNING "%s\n", __func__);
+	card->cis.max_dtr = 20000000;
+}
+#endif	// if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+
+
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_UTMI,
 	.mode			= MUSB_OTG,
@@ -399,6 +484,20 @@ static struct omap2_hsmmc_info mmc[] = {
 		.built_in	= true,
 		.nonremovable	= true,
 		.init_card	= pcm049_wl1271_init_card,
+		.gpio_wp	= -EINVAL,
+	},
+#endif
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+	{
+		.mmc		= 5,
+		.name		= "brcmfmac",
+		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD,
+		.gpio_cd	= -EINVAL,
+		//.ocr_mask	= MMC_VDD_165_195, /* 1V8 */
+		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+		.built_in	= true,
+		.nonremovable	= true,
+		.init_card	= pcm049_lwb_init_card,
 		.gpio_wp	= -EINVAL,
 	},
 #endif
@@ -792,6 +891,10 @@ static struct omap_board_mux board_mux[] __initdata = {
 	/* WLAN POWER ENABLE - GPIO 106 */
 	OMAP4_MUX(SDMMC1_DAT4, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
 #endif
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+	/* WLAN POWER ENABLE - GPIO 106 */
+	OMAP4_MUX(SDMMC1_DAT4, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
+#endif
 
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
 	/* EDT FT5X06 WAKE - GPIO 108 */
@@ -1081,6 +1184,44 @@ static void __init pcm049_wl12xx_init(void)
 }
 #endif
 
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+static void __init pcm049_lwb_init(void)
+{
+	omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT);
+	omap_mux_init_signal("sdmmc5_dat0.sdmmc5_dat0",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat1.sdmmc5_dat1",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat2.sdmmc5_dat2",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_signal("sdmmc5_dat3.sdmmc5_dat3",
+				OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+
+	omap_mux_init_gpio(GPIO_WL_EN, OMAP_PIN_OUTPUT);
+
+#ifndef LWB_USE_FIXED_REGULATOR
+    if (gpio_request(GPIO_WL_EN, "wl-en") < 0)
+        printk(KERN_WARNING "failed to request GPIO#%d\n", GPIO_WL_EN);
+    else if (gpio_direction_output(GPIO_WL_EN, 1))
+        printk(KERN_WARNING "GPIO#%d cannot be configured as "
+                "output\n", GPIO_WL_EN);
+#else // ifndef LWB_USE_FIXED_REGULATOR
+	if (platform_device_register(&omap_vwlan_device))
+		pr_err("Error registering LWB device\n");
+
+#endif // ifndef LWB_USE_FIXED_REGULATOR
+
+	if (platform_device_register(&brcmfmac_platform_device))
+		pr_err("Error registering LWB device\n");
+
+
+	return;
+}
+#endif
+
 /* TODO: handle suspend/resume here.
  * Upon every suspend, make sure the wilink chip is capable
  * enough to wake-up the OMAP host.
@@ -1182,6 +1323,38 @@ static inline void __init ksp5012_btwilink_init(void)
 	platform_device_register(&btwilink_device);
 }
 
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+#ifdef CONFIG_LWB_RFKILL
+struct bcm_lwb_rfkill_platform_data bcm_lwb_rfkill_pdata = {
+    .nshutdown_gpio = GPIO_BT_EN,
+};
+
+static struct platform_device bcm_lwb_rfkill_device = {
+	.name		= "bcm-lwb-rfkill",
+	.id		= -1,
+	.dev.platform_data = &bcm_lwb_rfkill_pdata,
+};
+#endif // ifdef CONFIG_LWB_RFKILL
+
+static inline void __init lwb_bt_init(void)
+{
+	pr_info("LWB: bt init\n");
+
+
+	omap_mux_init_gpio(GPIO_BT_EN,
+				OMAP_PIN_OUTPUT);
+
+	omap_mux_init_gpio(GPIO_BT_DEV_WAKE,
+				OMAP_PIN_OUTPUT);
+
+#ifdef CONFIG_LWB_RFKILL
+	platform_device_register(&bcm_lwb_rfkill_device);
+#endif // ifdef CONFIG_LWB_RFKILL
+
+}
+
+#endif // if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+
 static void __init pcm049_init(void)
 {
 	int status;
@@ -1212,6 +1385,11 @@ static void __init pcm049_init(void)
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 	pcm049_wl12xx_init();
 	ksp5012_btwilink_init();
+#endif
+
+#if defined(CONFIG_BRCMFMAC) || defined(CONFIG_BRCMFMAC_MODULE)
+	pcm049_lwb_init();
+	lwb_bt_init();
 #endif
 
 	if (cpu_is_omap446x()) {

@@ -51,3 +51,10 @@ config BRCMDBG
 	depends on BRCMSMAC || BRCMFMAC
 	---help---
 	  Selecting this enables additional code for debug purposes.
+
+config BRCMFMAC_STERLING_LWB_FW
+	bool "Sterling LWB Module Firmware"
+	depends on BRCMSMAC || BRCMFMAC
+	---help---
+	  Sterling LWB Module Firmware
+

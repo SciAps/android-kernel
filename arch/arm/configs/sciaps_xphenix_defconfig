@@ -1026,7 +1026,7 @@ CONFIG_STANDALONE=y
 CONFIG_PREVENT_FIRMWARE_BUILD=y
 CONFIG_FW_LOADER=y
 CONFIG_FIRMWARE_IN_KERNEL=y
-CONFIG_EXTRA_FIRMWARE=""
+CONFIG_EXTRA_FIRMWARE="brcm/brcmfmac43430-sdio.bin brcm/brcmfmac43430-sdio.clm_blob brcm/brcmfmac43430-sdio-fcc.txt brcm/brcmfmac43430-sdio-prod.bin brcm/brcmfmac43430-sdio.txt brcm/BCM43430A1.hcd"
 # CONFIG_DEBUG_DRIVER is not set
 # CONFIG_DEBUG_DEVRES is not set
 # CONFIG_SYS_HYPERVISOR is not set
@@ -1441,7 +1441,8 @@ CONFIG_WLAN=y
 # CONFIG_B43 is not set
 # CONFIG_B43LEGACY is not set
 # CONFIG_BCMDHD is not set
-# CONFIG_BRCMFMAC is not set
+CONFIG_BRCMFMAC=m
+CONFIG_BRCMFMAC_STERLING_LWB_FW=y
 # CONFIG_HOSTAP is not set
 # CONFIG_IWM is not set
 # CONFIG_LIBERTAS is not set
@@ -1456,6 +1457,7 @@ CONFIG_WL12XX_SDIO=m
 CONFIG_WL12XX_PLATFORM_DATA=y
 # CONFIG_ZD1211RW is not set
 # CONFIG_MWIFIEX is not set
+CONFIG_LWB_RFKILL=y
 
 #
 # Enable WiMAX (Networking options) to see the WiMAX drivers
